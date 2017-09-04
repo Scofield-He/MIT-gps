@@ -44,7 +44,7 @@ for fi in os.listdir(file_path):
     if ".hdf5" in fi:
         file = h5py.File(file_path + fi)
         print("time = {}".format(datetime.datetime), "raw file = {}".format(file), "count = {}".format(count))
-        count += 1
+        count += 1           # count = 13
     else:
         continue
 
