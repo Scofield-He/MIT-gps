@@ -10,15 +10,14 @@ import h5py
 import aacgmv2
 from datetime import date
 
-"""
+
 def data_parameters(file):
-    for item in file['Metadata']['Data Parameters']:
-        print(item)
+    for parameter in file['Metadata']['Data Parameters']:
+        print(parameter)
     test = file['Data']['Table Layout'][:10]
     print(test)
 
     return True
-"""
 
 
 def a2g(mlat, mlon, alt, date_time):
@@ -63,7 +62,7 @@ def map_tec(datafile, outpath):
         fig.drawcoastlines(linewidth=0.5)
         # draw lat/lon grid lines and lables, lables = [left, right, top, bottom]
         fig.drawmeridians(np.arange(-180., 181., 60.), labels=[False, False, False, True])
-        fig.drawparallels(np.arange(-90., 91., 30.), labels=[True, False, False, False])
+        fig.drawparallels(np.arange(-90., 91., 20.), labels=[True, False, False, False])
 
         x1, y1 = a2g(45, np.arange(-113, 246), 350, date(2013, 2, 20))
         x2, y2 = a2g(70, np.arange(-124, 236), 350, date(2013, 3, 10))
