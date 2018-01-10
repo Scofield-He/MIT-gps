@@ -10,11 +10,73 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator,  FuncFormatter
 
 
-def tec_profile_gen(glat, glon, tec, lst):
+def lt_formatter(x1, _):
+    lon_local = (lon_left + lon_right) / 2
+    m = round((x1 + lon_local / 15) % 24, 2)
+    x1 = "{:2d}:00".format(int(x1))
+    return "{}\n{}".format(x1, m)
 
-    glon1, glon2 = -162, -158         # (-162, -158)
-    glat1, glat2 = 45, 75             # [45, 75]
 
+def read_C9_index_of_one_day(dat):
+    """
+    ----------
+    get C9 index of one day given.
+    
+    Parameters
+    ----------
+    dat: datetime.date(), input date.
+    
+    Returns
+    ----------
+    C9 index value
+    """
+    file_path = "C:\\DATA\\index\\Kp-ap-Flux_01-17.dat"
+    with open(file_path, 'rb') as fp:
+        index_value = -1
+        for line in fp:
+            line = line.strip().decode('utf-8')
+            if line[:2] == str(dat.year)[2:] and int(line[2:4]) == dat.month and int(line[4:6]) == dat.day:
+                index_value = int(line[61])
+                break
+        if index_value == -1:
+            raise ValueError("not find index value of the day: {}".format(dat))
+        else:
+            return index_value
+
+
+def read_t(t_string):
+    t = [int(_) for _ in t_string.split(',')]
+    if len(t) == 1:
+        return t[0], 0, 0
+    elif len(t) == 2:
+        return t[0], t[1], 0
+    elif len(t) == 3:
+        return t[0], t[1], t[2]
+    else:
+        print("input t error")
+        return 0, 0, 0
+
+
+def gen_tec_profile_of_current_ut(glat, glon, tec, cur_datalist, glat1, glat2, glon1, glon2):
+    """
+    Usage
+    ----------
+    generate and record data of one tec profile at one given ut;
+
+    Parameters
+    ----------
+    glat, glon, tec: list, all global data in at one moment;
+    cur_datalist: list, [[], []], record gdlat and correspond mean_tec values
+    glat1, glat2: int, lat range for given area;
+    glon1, glon2: int, lon range for given area;
+
+    Return
+    ----------
+    none. append lat value and its correspond mean tec value to data[ut];
+
+    Notes
+    ----------
+    """
     tec_value = {}
     for idx in range(glat1, glat2 + 1):
         tec_value[idx] = []
@@ -22,128 +84,113 @@ def tec_profile_gen(glat, glon, tec, lst):
         if glon1 < j < glon2 and glat1 < k < glat2:
             tec_value[int(k)].append(l)
 
-    # print(tec_value)
-
     latitude, mean_tec = [], []
     for idx in range(glat1, glat2 + 1):
         if tec_value[idx]:
             latitude.append(idx)
             mean_tec.append(np.mean(tec_value[idx]))
-
-    lst.append(latitude)
-    lst.append(mean_tec)
-
-
-def lt_formatter(x1, _):
-    lon_local = -160
-    m = round((x1 + lon_local / 15) % 24, 2)
-    return "{}".format(m)
+    cur_datalist.append(latitude)
+    cur_datalist.append(mean_tec)
 
 
-year = 13
-data_path = "C:\\DATA\\GPS_MIT\\20{}\\DATA\\".format(year)
-fo_path = "C:\\DATA\\GPS_MIT\\2013\\figure\\lt_3\\"
+def gen_data_of_current_day(path, file):
+    table_layout = h5py.File(path + file)["Data"]["Table Layout"]
+    hours, minutes = table_layout["hour"], table_layout["min"]
+    lat, lon = table_layout["gdlat"], table_layout["glon"]
+    tec_data, dtec = table_layout["tec"], table_layout["dtec"]
+    data_length = len(table_layout)
 
-for file in os.listdir(data_path):
-    if ".hdf5" in file and file[3:5] == str(year) and int(file[5:7]) > 0:
+    i, h0, m0 = 0, hours[0], minutes[0]
+    data = {}
+    while i < data_length:
+        index_begin, index_end, ut = -1, -1, 0
+        while i < data_length and minutes[i] == m0:
+            if index_begin < 0:
+                index_begin = i
+                ut = datetime.time(h0, m0)
+                data[ut] = []
+            i += 1
+        else:
+            index_end = i - 1
+            cur_tec, cur_glat, cur_glon = tec_data[index_begin: i], lat[index_begin: i], lon[index_begin: i]
+            gen_tec_profile_of_current_ut(cur_glat, cur_glon, cur_tec, data[ut], lat_low, lat_high, lon_left, lon_right)
 
-        date = datetime.date(int('20' + file[3:5]), int(file[5:7]), int(file[7:9]))
-        doy = date.timetuple().tm_yday
-        title = '{} {}'.format(date, doy)
-        print(title)
-
-        if os.path.exists(fo_path + title + '.png'):
-            print("picture has already been plotted")
-            continue
-
-        C9 = -1
-        with open("C:\\DATA\\index\\Kp-ap-Flux_01-17.dat", 'rb') as fp:
-            for line in fp:
-                line_data = line.strip().decode('utf-8')
-                if line_data[:2] == str(date.year)[2:] and int(line_data[2:4]) == date.month \
-                        and int(line_data[4:6]) == date.day:
-                    C9 = int(line_data[61])
-        print('C9: {}'.format(C9))
-
-        print("{} begins: -------------------------------------".format(date))
-        time0 = time.time()
-        f = h5py.File(data_path + file)
-        table_layout, gm_data = f["Data"]["Table Layout"], f["Data"]["mData"]
-        hours, minutes = table_layout["hour"], table_layout["min"]
-        lat, lon, tec_data = table_layout["gdlat"], table_layout["glon"], table_layout["tec"]
-
-        data_length = len(table_layout)
-        lon_center = -160
-
-        i = 0
-        h0, m0 = hours[i], minutes[i]
-        # print(h0, m0)
-        data = {}
-        while 1:
-            if i == data_length:
-                break
-            index_begin, index_end, ut = -1, -1, -1
-
-            while i < data_length and minutes[i] == m0:
-                if index_begin < 0:
-                    index_begin = i
-                    ut = round(h0 + m0 / 60, 2)
-                    # lt = round((ut + lon_center / 15) % 24, 2)
-                    data[ut] = []
-                    # print("ut: {}-{}, lt: {}".format(h0, m0, lt))
-                i += 1
-                # print(i, minutes[i], m0, index_begin)
+            if i < data_length:
+                h0, m0 = hours[i], minutes[i]
             else:
-                index_end = i - 1
-                # print(" ut: {:2d}-{:2d}; -------- begin: {:7d} ; end: {:7d}".format(h0, m0, index_begin, index_end))
+                print("last index: {}, data length: {}".format(index_end, data_length))
+    return data
 
-                tec_ut = tec_data[index_begin: i]
-                gdlat = lat[index_begin: i]
-                gdlon = lon[index_begin: i]
 
-                tec_profile_gen(gdlat, gdlon, tec_ut, data[ut])
+def plot_heatmap_of_current_day(data, C9, figure_name, fo_path):
+    x, y, color = [], [], []  # ut、纬度、mean_tec
+    for key in data.keys():
+        if data[key]:
+            for _ in range(len(data[key][0])):
+                x.append(key)                   # ut
+                y.append(data[key][0][_])       # lat
+                color.append(data[key][1][_])   # mean_tec
+    x = [round(_.hour + _.minute / 60, 2) for _ in x]
+    print('length of lt: {}; lat: {};  mean_tec: {}'.format(len(x), len(y), len(color)))
 
-                if i < data_length:
-                    h0, m0 = hours[i], minutes[i]
-                    # print(h0, m0)
-                else:
-                    print("data length: {}".format(data_length))
-                    # print(data)
+    fig = plt.figure(figsize=(14, 3))
+    ax1 = fig.add_subplot(111)
+    plt.gca()
+    # plt.scatter(x, y, c=color, vmin=0, vmax=15, marker='s', s=4, alpha=1, cmap=plt.cm.jet)
+    plt.scatter(x, y, c=color, vmin=0, vmax=15, marker='s', s=4, alpha=1, cmap=plt.cm.jet)
+    ax1.xaxis.set_major_locator(MultipleLocator(2))
+    ax1.xaxis.set_major_formatter(FuncFormatter(lt_formatter))
+    ax1.xaxis.set_minor_locator(MultipleLocator(1))
 
-        print("time cost: {}".format(round(time.time() - time0, 2)))
-        x, y, color = [], [], []         # ut、纬度、mean_tec
-        for key in data.keys():
-            if data[key]:
-                for _ in range(len(data[key][0])):
-                    x.append(key)
-                    y.append(data[key][0][_])
-                    color.append(data[key][1][_])
+    plt.xticks(fontsize=8, color='k', rotation=0)
+    plt.yticks(fontsize=8, color='k')
 
-        print('length of lt: {}; lat: {};  mean_tec: {}'.format(len(x), len(y), len(color)))
+    ax1.set_xlabel("UT/LT", fontsize=8, rotation=0)
+    ax1.set_ylabel("gdlat", fontsize=8)
+    plt.title(figure_name + '  NA  {}'.format(C9))
 
-        fig = plt.figure(figsize=(15, 1.5))
+    plt.subplots_adjust(bottom=0.18, left=0.05, right=0.92, top=0.85)
+    cax = plt.axes([0.94, 0.18, 0.02, 0.67])
+    plt.colorbar(cax=cax).set_label('TEC/TECU')
 
-        plt.scatter(x, y, c=color, vmin=0, vmax=15, marker='s', s=4, alpha=1, cmap=plt.cm.jet)
+    fig.savefig(fo_path + figure_name, dpi=500)
+    plt.close()
+    return True
 
-        plt.title(title + '  {}'.format(C9))
 
-        ax = plt.gca()
+def main(data_site, t_str, lon1, lon2):
+    year, month, day = read_t(t_str)
 
-        ax.xaxis.set_major_locator(MultipleLocator(4))
-        ax.xaxis.set_major_formatter(FuncFormatter(lt_formatter))
-        ax.xaxis.set_minor_locator(MultipleLocator(1))
-        # x_ticks = [round(_ + lon_center / 15, 2) % 24 for _ in range(0, 25, 2)]
-        # plt.xticks(x_ticks)
-        plt.xlabel('lt')
+    data_path = "C:\\DATA\\GPS_MIT\\{}\\{}\\data\\".format(data_site, year)
+    fo_path = "C:\\DATA\\GPS_MIT\\{}\\{}\\figure\\daily_lt_changes_{}_{}\\".format(data_site, year, lon1, lon2)
+    if not os.path.isdir(fo_path):
+        os.mkdir(fo_path)
 
-        plt.ylabel('latitude')
+    for filename in os.listdir(data_path):
+        if (not month or filename[5:7] == str(month)) and (not day or filename[7:9] == str(day)) \
+                                                       and ".hdf5" in filename and filename[3:5] == str(year)[-2:]:
+            date = datetime.date(year, int(filename[5:7]), int(filename[7:9]))
+            doy = date.timetuple().tm_yday
 
-        plt.subplots_adjust(bottom=0.15, right=0.9, top=0.85)
-        cax = plt.axes([0.93, 0.15, 0.02, 0.7])
-        plt.colorbar(cax=cax).set_label('TEC/TECU')
+            figure_name = '{} {}'.format(date, doy)
+            if os.path.exists(fo_path + figure_name + '.png'):
+                print("picture {} has already been drawn".format(figure_name))
+                continue
 
-        fig.savefig(fo_path + title, dpi=500)
-        plt.close()
+            print("{} begins: -------------------------------------".format(date))
+            time0 = time.time()
 
-        # plt.show()
-        # break
+            C9 = read_C9_index_of_one_day(date)
+            print("C9 index: {}".format(C9))
+
+            data = gen_data_of_current_day(data_path, filename)
+
+            plot_heatmap_of_current_day(data, C9, figure_name, fo_path)
+            print("date {} cost: {} sec".format(date, round(time.time() - time0, 2)))
+
+    return True
+
+
+site, str_year, lon_left, lon_right = 'millstone', '2015', -125, -115
+lat_low, lat_high = 30, 80
+main(site, str_year, lon_left, lon_right)
