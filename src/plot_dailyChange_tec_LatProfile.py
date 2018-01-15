@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
 def get_profiles_one_year(year, file_path):
     error_days_2013 = [_ for _ in range(214, 218)] + [_ for _ in range(309, 317)] + \
                       [_ for _ in range(326, 339)] + []
-    error_days_2014 = [_ for _ in range(61, 68)] + [_ for _ in range(87, 237)] + \
-                      [_ for _ in range(267, 271)]
+    error_days_2014 = [_ for _ in range(61, 68)] + [_ for _ in range(87, 237)]
     if year == 2014:
         error_days = error_days_2014
     elif year == 2013:

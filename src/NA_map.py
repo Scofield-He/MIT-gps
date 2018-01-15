@@ -223,16 +223,17 @@ def map_tec_north_american(region, file_path, file, outpath):
     return True
 
 
-# fi_path = "C:\\DATA\\GPS_MIT\\2013\\data\\"
-# out_path = "C:\\DATA\\GPS_MIT\\2013\\figure\\NA-map-matrix\\"
-fi_path = "C:\\DATA\\GPS_MIT\\2006\\data\\"
-out_path = "C:\\DATA\\GPS_MIT\\2006\\figure\\NA-map-matrix\\"
+data_site, str_date = 'millstone', '20140405'
+
+year = int(str_date[:4])
+fi_path = "C:\\DATA\\GPS_MIT\\{}\\{}\\data\\".format(data_site, year)
+out_path = "C:\\DATA\\GPS_MIT\\{}\\{}\\figure\\NA-map-glon_-120\\".format(data_site, year)
+
 if not os.path.isdir(out_path):
     os.makedirs(out_path)
 for fi in os.listdir(fi_path):
     if ".hdf5" in fi:
-        # if 21 <= int(fi[7:9]) <= 24:
-        if int(fi[3:5]) == 5:
+        if fi[3:5] == str_date[2:4] and fi[5:7] == str_date[4:6] and fi[7:9] == str_date[6:8]:
             print("{} begins: -- > ".format(fi))
             map_tec_north_american('NA', fi_path, fi, out_path)
 else:

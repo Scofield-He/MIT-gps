@@ -12,9 +12,14 @@ def download_mit_tec_data(y1, m1, d1, y2, m2, d2, path):
     user_email = 'ch.xiaohe@pku.edu.cn'
     user_affiliation = 'ISPAT of SESS of Peking University'
     madrigalUrl = 'http://madrigal.haystack.mit.edu/madrigal'
-    code = 8000  # code=<instrument code>,8000:Millstone, World-wide GPS Receiver
+    # madrigalUrl = "http://cedar.openmadrigal.org/"
+    code = 8000                   # code=<instrument code>,8000:Millstone, World-wide GPS Receiver
 
-    outpath = path + str(y1) + '\\'
+    # outpath = path + '{}\\raw_data\\'.format(y1)
+    outpath = path + '{}\\data\\'.format(y1)
+    print(outpath)
+    if not os.path.exists(outpath):
+        os.mkdir(path)
     Data = madrigalWeb.madrigalWeb.MadrigalData(madrigalUrl)
     print('get access')
     print()
@@ -41,7 +46,15 @@ def download_mit_tec_data(y1, m1, d1, y2, m2, d2, path):
                     print(filename, 'got it')
 
 
-out_path = 'E:\\master\\DATA\\GPS_MIT\\'
-y0, m0, d0 = 2012, 1, 1
-y, m, d = 2012, 12, 31
+# out_path = 'E:\\master\\DATA\\GPS_MIT\\'
+out_path = "C:\\DATA\\GPS_MIT\\millstone\\"
+# out_path = "G:\\research\\DATA\\GPS_MIT\\"
+y0, m0, d0 = 2017, 1, 1
+y, m, d = 2017, 11, 14
 download_mit_tec_data(y0, m0, d0, y, m, d, out_path)
+
+"""
+globalDownload.py --verbose --url=http://cedar.openmadrigal.org --outputDir=/tmp --user_fullname="Shichuang+He" 
+--user_email=ch.xiaohe@pku.edu.cn --user_affiliation="ISPAT+of+SESS+of+Peking+University" --format="hdf5" 
+--startDate="01/01/2014" --endDate="12/31/2014" --inst=8000 --kindat=3500 --expName="cedar"
+"""

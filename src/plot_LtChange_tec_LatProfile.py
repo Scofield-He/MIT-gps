@@ -144,14 +144,20 @@ def plot_heatmap_of_current_day(data, C9, figure_name, fo_path):
 
     plt.xticks(fontsize=8, color='k', rotation=0)
     plt.yticks(fontsize=8, color='k')
+    plt.xlim(0, 24)
 
     ax1.set_xlabel("UT/LT", fontsize=8, rotation=0)
     ax1.set_ylabel("gdlat", fontsize=8)
-    plt.title(figure_name + '  NA  {}'.format(C9))
+
+    lon1 = '{}°E'.format(lon_left) if lon_left > 0 else '{}°W'.format(-lon_left)
+    lon2 = '{}°E'.format(lon_right) if lon_right > 0 else '{}°W'.format(-lon_right)
+    plt.title(figure_name + '  {}-{}  {}'.format(lon1, lon2, C9))
 
     plt.subplots_adjust(bottom=0.18, left=0.05, right=0.92, top=0.85)
     cax = plt.axes([0.94, 0.18, 0.02, 0.67])
-    plt.colorbar(cax=cax).set_label('TEC/TECU')
+    cbar = plt.colorbar(cax=cax)
+    cbar.set_label('TEC/TECU', size=8)
+    cbar.ax.tick_params(labelsize=8)
 
     fig.savefig(fo_path + figure_name, dpi=500)
     plt.close()
@@ -191,6 +197,9 @@ def main(data_site, t_str, lon1, lon2):
     return True
 
 
-site, str_year, lon_left, lon_right = 'millstone', '2015', -125, -115
-lat_low, lat_high = 30, 80
-main(site, str_year, lon_left, lon_right)
+site, str_year = 'millstone', '2016'
+for lon_left in [-125, -95, -5, 25]:                        # [-125, -95, -5, 25, 40]
+    lon_right = lon_left + 10
+    print("lon_left: {} -------------------------------------------------------------------------".format(lon_left))
+    lat_low, lat_high = 30, 80
+    main(site, str_year, lon_left, lon_right)

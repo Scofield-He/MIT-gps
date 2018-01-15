@@ -123,8 +123,7 @@ def read_mag_index(file_path):
 
 
 print("now time: {}".format(datetime.datetime.now()))
-data_year, site = 2014, 'millstone'
-# fi_path = "C:\\DATA\\GPS_MIT\\{}\\data\\".format(data_year)
+data_year, site = 2016, 'millstone'
 fi_path = "C:\\DATA\\GPS_MIT\\{}\\{}\\data\\".format(site, data_year)
 path = "C:\\code\\MIT-gps\\resources\\{}\\{}\\".format(data_year, site)
 
