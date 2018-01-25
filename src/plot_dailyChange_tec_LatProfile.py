@@ -5,9 +5,42 @@ import os
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import interpolate
 
 
-def get_profiles_one_year(year, file_path):
+def plot_daily_tec_profile(cur_doy, lats, tec, is_min, lat_min, min_tec, C9):
+    print('plot tec profile  {}  --------------------'.format(cur_doy))
+    fig = plt.figure(figsize=(8, 5))
+    ax = fig.add_subplot(111)
+    plt.sca(ax)
+
+    plt.xlim(25, 85)
+    # plt.ylim(0, 30)
+
+    plt.plot(lats, tec, 'bo', label='TEC')                      # 蓝色○，每个纬度的TEC均值
+    x = list(range(30, 80))
+    y = interpolate.UnivariateSpline(lats, tec, s=5)(x)         # 插值
+    plt.plot(x, y, 'k--', label='interpolate profile')
+
+    if is_min:                                                  # 这天被判定为槽发生，且记录了槽极小的位置
+        plt.plot(lat_min, min_tec, 'r^', label='trough mini')
+    title = 'mean TEC lat profile  \n lt:{}-{}  glon:{}-{}  year:{}  doy:{:3d}  C9 index:{}'.\
+        format(lt1, lt2, glon1, glon2, year, cur_doy, C9)
+    plt.title(title)
+    plt.legend()
+
+    savefig_path = out_path + 'TEC profiles\\'
+    if not os.path.exists(savefig_path):
+        os.mkdir(savefig_path)
+    fig.savefig(savefig_path + '{:3d}'.format(cur_doy))
+    plt.close()
+    return True
+
+
+def get_profiles_one_year(file_path, list_C9):
+    """
+    """
+    """
     error_days_2013 = [_ for _ in range(214, 218)] + [_ for _ in range(309, 317)] + \
                       [_ for _ in range(326, 339)] + []
     error_days_2014 = [_ for _ in range(61, 68)] + [_ for _ in range(87, 237)]
@@ -17,68 +50,58 @@ def get_profiles_one_year(year, file_path):
         error_days = error_days_2013
     else:
         error_days = []
+    """
     doy, glat, tec = [], [], []
     xdoy, position = [], []
+    error_days = []
     with open(file_path, 'r') as fi:
         for line in fi:
             items = line.strip().split(';')
-            if len(items) == 3:                                    # doy, glat, mean_tec
-                # for lat in range(45, 71):
+            if len(items) == 3:                                     # doy, glat, mean_tec
+                cur_doy = int(items[0])
                 lats = items[1].split(' ')
-                cur_doy = int(items[0])                             # 当前doy
-                for lat in lats:
-                    if lat:
-                        doy.append(cur_doy)
-                        glat.append(lat)
-
                 values = items[2].split(' ')
+
                 if values:
-                    values = [float(v) for v in values if v]
                     lats = [int(_) for _ in lats if _]
+                    values = [float(v) for v in values if v]
 
-                    """
-                    if int(items[0]) == 275:
-                        print("tec value of doy 275: \n", lats, "\n", values)
-                    elif int(items[0]) == 216:
-                        print("tec value of doy 216: \n", lats, "\n", values)
-                    """
+                    # for i, j in zip(lats, values):
+                    #     pass
 
-                    """
-                    lat range:
-                    {'2015': [45, 60], '2014': [45, 60], '2013':[45, 60], '2012':[45, 60], '2011':[35, 55]}
-                    """
-                    index_45 = lats.index(45)
-                    low_lat_limit, high_lat_limit = 45, 60
+                    low_lat_limit, high_lat_limit = 45, 70
                     while high_lat_limit not in lats:                                        # 高纬区域有时没有数据
                         high_lat_limit -= 1
                     else:
                         index_65 = lats.index(high_lat_limit)
-                    lats = lats[index_45: index_65]
-                    value = values[index_45: index_65]
-
-                    mean_tec = np.mean(value)
-                    min_tec = np.min(value)
-
+                        index_45 = lats.index(low_lat_limit)
+                    lats_cur, values_cur = lats[index_45: index_65], values[index_45: index_65]
+                    mean_tec, min_tec = np.mean(values_cur), np.min(values_cur)
+                    is_min, lat_min = 0, 0
                     if cur_doy not in error_days and min_tec < mean_tec * 0.8:
-                        if low_lat_limit + 1 < lats[value.index(min_tec)] < high_lat_limit - 1:              # 去除边界值影响
+                        lat_min = lats_cur[values_cur.index(min_tec)]
+                        if low_lat_limit + 1 < lat_min < high_lat_limit - 1:  # 边界
+                            is_min = 1
                             xdoy.append(cur_doy)
-                            position.append(lats[value.index(min_tec)])
-                        """
-                        if cur_doy not in error_days:
-                            xdoy.append(cur_doy)
-                            position.append(lats[value.index(min_tec)])
-                        """
+                            position.append(lat_min)
                     else:
                         pass
-                        # print(int(items[0]), end=' ')
+
+                    # 作图画出每天lats-tec_values
+                    C9 = list_C9[cur_doy - 1]
+                    plot_daily_tec_profile(cur_doy, lats, values, is_min, lat_min, min_tec, C9)
 
                     maxi = max(values)
                     # print("values: ", maxi, values)
-                    values = [float(20 * v / maxi) for v in values if v]
+                    values = [float(20 * v / maxi) for v in values if v]                       # 归一化
+
+                for lat in lats:
+                    if lat:
+                        doy.append(cur_doy)
+                        glat.append(lat)
                 for _ in values:
                     tec.append(float(_))
                     # print('tec value count for one doy: {}'.format(cnt))
-
     print('\n', len(doy), len(glat), len(tec))
     print("count of days that occur trough: {}".format(len(xdoy)))
     print("trough mini doy: {}".format(xdoy))
@@ -86,10 +109,10 @@ def get_profiles_one_year(year, file_path):
     return doy, glat, tec, xdoy, position
 
 
-def read_kp_index(year, lt, glon):
+def read_kp_index(glon):
     file_path = "C:\\DATA\\index\\Kp-ap-Flux_01-17.dat"
     doy, c9, Kp = [], [], []
-    day_diff, ut = divmod(lt - glon // 15, 24)
+    day_diff, ut = divmod(lt1 - glon // 15, 24)
     begin_digit = 12 + 2 * int(ut // 3)
     print("digit: ", begin_digit)
     end_digit = begin_digit + 2
@@ -108,10 +131,10 @@ def read_kp_index(year, lt, glon):
     return doy, c9, Kp
 
 
-def read_ae_index(year, lt, glon):
+def read_ae_index(glon):
     file_path = "C:\\DATA\\index\\AE index_0101-1706_WDC-like format.txt"
     doy, ae, ae6 = [], [], []
-    day_diff, ut = divmod(lt - glon // 15, 24)
+    day_diff, ut = divmod(lt1 - glon // 15, 24)
 
     div = 0
     for _ in range(7):                                                       # 计算ae6的负e指数权重
@@ -176,18 +199,19 @@ def read_ae_index(year, lt, glon):
     return doy, ae, ae6
 
 
-def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
+def plot_tec_profile_with_mag_index():
+
     def plot_fig1_profile():
         datapath = "C:\\code\\MIT-gps\\resources\\{}\\{}\\{}_{}-{}_{}-{}.txt".format(year, site, year, lt1, lt2,
                                                                                      glon1, glon2)
-        glon = (glon1 + glon2) / 2
+
+        day_of_year, C9_index, Kp_index = read_kp_index(glon_center)
 
         fig1 = plt.figure(figsize=(30, 6))  # plot figure1
         # plt.subplots_adjust(hspace=0)
         ax1 = plt.subplot(211)
-
         plt.sca(ax1)  # plot ax1 in fig1
-        x, y, color, x_doy, loc_mini = get_profiles_one_year(year, datapath)
+        x, y, color, x_doy, loc_mini = get_profiles_one_year(datapath, C9_index)
         doy1, doy2 = 0, 366
         x = [_ for _ in x if doy1 < _ < doy2]
         y, color = y[:len(x)], color[:len(x)]
@@ -207,18 +231,25 @@ def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
         plt.colorbar(cax=cax).set_label('TEC/TECU')
 
         ax2 = plt.subplot(212, sharex=ax1)
-        plt.sca(ax2)                                                               # plot ax2 in fig1
-        day_of_year, C9_index, Kp_index = read_kp_index(year, lt1, glon)
-        C9_index = [_ for _ in C9_index]
         width = 1
+        plt.sca(ax2)  # plot ax2 in fig1
+        # print("len of x_doy:{}".format(len(x_doy)))
+        for i in range(1, 366):
+            if i not in x_doy:
+                plt.bar(i, 10, width, color='0.8')
+        plt.yticks(())
+
+        ax4 = ax2.twinx()
+        plt.sca(ax4)
+        C9_index = [_ for _ in C9_index]
         # plt.bar(day_of_year, Kp_index, width, color='b', label='Kp index')
         plt.bar(day_of_year, C9_index, width, color='b', label='C9 index')
         # day_of_year = [_ + 0.5 for _ in day_of_year]
         # plt.plot(day_of_year, C9_index, '.', color='r', label='C9 index')
         plt.ylabel('C9 index')
         plt.xlabel('doy')
+        # plt.xlim(-1, 367)
         plt.ylim(0, 9)
-        plt.xlim(doy1 - 2, doy2 + 2)
         plt.legend(bbox_to_anchor=(0.976, 0.8))
 
         ax3 = ax2.twinx()
@@ -227,25 +258,6 @@ def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
         ax3.set_ylim(40, 65)
         # ax3.set_ylim(30, 60)
         plt.legend(bbox_to_anchor=(0.993, 0.95))
-
-        ax4 = ax2.twinx()
-        plt.sca(ax4)
-        # print("len of x_doy:{}".format(len(x_doy)))
-        for i in range(1, 366):
-            if i not in x_doy:
-                plt.bar(i, 10, width, color='0.8')
-        plt.yticks(())
-
-        """
-        equinox_or_solstice = [82, 173, 266, 356]
-        dates_mag_active = [17, 26, 60, 76, 88, 121, 152, 158, 180, 187, 191, 217, 228, 256, 262, 282, 287, 327, 348]
-        for day in equinox_or_solstice:
-            plt.plot([day, day, ], [0, 90, ], 'g--', linewidth=1)
-            print(day)
-            pass
-        for date in dates_mag_active:
-            plt.plot([date, date, ], [0, 90, ], 'k--', linewidth=0.5)
-        """
 
         new_ticks = list(map(int, np.linspace(doy1, doy2, int((doy2 - doy1) / 7))))
         # print(new_ticks)
@@ -260,9 +272,6 @@ def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
         plt.close()
         return x_doy, Kp_index, C9_index, loc_mini
 
-    out_path = 'C:\\code\\MIT-gps\\resources\\{}\\{}\\{}-{}\\'.format(year, site, lt1, lt2)
-    if not os.path.isdir(out_path):
-        os.mkdir(out_path)
     doy, Kp, C9, trough_mini = plot_fig1_profile()
     print("count of x_doy: {}, count of Kp: {}, count of C9: {}, count of trough_mini: {}".
           format(len(doy), len(Kp), len(C9), len(trough_mini)))
@@ -304,7 +313,7 @@ def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
         # plt.ylim(30, 60)
         plt.xlim(-1, 9)
         plt.legend()
-        plt.title("trough mini lat - {} - lt:{:2d}-{:2d}".format(x_label, lt1, lt2))
+        plt.title("trough mini lat - {} - {} lt:{:2d}-{:2d}".format(year, x_label, lt1, lt2))
 
         ax2 = fig2.add_subplot(122)                                # ax2 in fig2
         plt.sca(ax2)
@@ -353,15 +362,14 @@ def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
         plt.title("median of trough mini lat - {} - lt:{:2d}-{:2d}".format(x_label, lt1, lt2))
         return fig2
 
-    fig_name_kp = '{} trough mini loc - Kp index  between LT {}-{} and longitude {}-{} regular'.format(year, lt1, lt2,
-                                                                                                       glon1, glon2)
-
+    fig_name_kp = 'min loc_Kp index LT_{}-{} glon_{}-{}_regular'.format(year, lt1, lt2, glon1, glon2)
+    print('plot trough mini loc_Kp:  {}  --------------------'.format(year))
     fig_kp = plot_fig2_k(doy, Kp, trough_mini)
     fig_kp.savefig(out_path + fig_name_kp)
     plt.close()
 
-    fig_name_c9 = '{} trough mini loc - C9 index  between LT {}-{} and longitude {}-{} regular'.format(year, lt1, lt2,
-                                                                                                       glon1, glon2)
+    fig_name_c9 = 'min loc_C9 index LT_{}-{} glon_{}-{}_regular'.format(year, lt1, lt2, glon1, glon2)
+    print('plot trough mini loc_C9:  {}  --------------------'.format(year))
     fig_c9 = plot_fig2_k(doy, C9, trough_mini)
     fig_c9.savefig(out_path + fig_name_c9)
     plt.close()
@@ -382,7 +390,7 @@ def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
 
         coe = np.corrcoef(np.array([ae_index, loc_mini]))                  # 线性回归，相关系数
         corrcoef = round(coe[0][1], 2)
-        print('corrcoef: ', corrcoef)
+        print('AE corrcoef: ', corrcoef)
 
         z1 = list(np.polyfit(ae_index, loc_mini, 1))
         print("z1: ", z1)
@@ -410,7 +418,7 @@ def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
 
         coe = np.corrcoef(np.array([ae6_index, loc_mini]))  # 线性回归，相关系数
         corrcoef = round(coe[0][1], 2)
-        print('corrcoef: ', corrcoef)
+        print('AE6 corrcoef: ', corrcoef)
 
         z1 = list(np.polyfit(ae6_index, loc_mini, 1))
         print("z1: ", z1)
@@ -422,16 +430,14 @@ def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
         plt.xlabel("AE_index")
         plt.ylabel("Geographic Latitude")
         plt.ylim(40, 65)
-        # plt.ylim(30, 60)
         plt.xlim(0, 1000)
         plt.legend()
         plt.title("trough mini lat - AE6 index - lt:{:2d}-{:2d}".format(lt1, lt2))
-
         return fig3
 
-    fig_name_AE = '{} trough mini loc - AE index  between LT {}-{} and longitude {}-{} regular'.format(year, lt1, lt2,
-                                                                                                       glon1, glon2)
-    _, ae, ae6 = read_ae_index(year, lt1, -120)
+    fig_name_AE = 'min loc_AE-AE6 index LT_{}-{} glon_{}-{}_regular'.format(year, lt1, lt2, glon1, glon2)
+    _, ae, ae6 = read_ae_index(glon_center)
+    print('plot trough mini loc_Kp:  {}  --------------------'.format(year))
     fig_ae = plot_fig3_ae(doy, ae, ae6, trough_mini)
     fig_ae.savefig(out_path + fig_name_AE)
     plt.close()
@@ -439,12 +445,22 @@ def plot_tec_profile_with_mag_index(site, year, lt1, lt2, glon1, glon2):
     return True
 
 
-Y = 2014
-list_lt = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]              # 18, 19, 20, ……, 4, 5
-# list_lt = [23, 0, 1, 2, 3, 4]
-for _ in list_lt:
-    plot_tec_profile_with_mag_index('millstone', Y, _, _ + 1, -125, -115)
-    pass
+year, site = 2016, 'millstone'
+list_lt = [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]              # 18, 19, 20, ……, 4, 5
+# list_lt = [2, 3, 4, 5]
+list_lon = [-95, -5, 25, -125]
+# list_lon = [25]
+for glon1 in list_lon:
+    glon2 = glon1 + 10
+    glon_center = (glon1 + glon2) // 2
+
+    for lt1 in list_lt:
+        lt2 = lt1 + 1
+        out_path = 'C:\\code\\MIT-gps\\resources\\{}\\{}\\{}-{}\\glon_mid_{}\\'.format(year, site, lt1, lt2,
+                                                                                       glon_center)
+        if not os.path.isdir(out_path):
+            os.mkdir(out_path)
+        plot_tec_profile_with_mag_index()
 
 # plot_tec_profile_with_mag_index(2013, 23, 1, -125, -115)
 # plot_tec_profile_with_mag_index(2014, 23, 0, -125, -115)
