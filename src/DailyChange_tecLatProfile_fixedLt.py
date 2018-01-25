@@ -123,21 +123,26 @@ def read_mag_index(file_path):
 
 
 print("now time: {}".format(datetime.datetime.now()))
-data_year, site = 2016, 'millstone'
+data_year, site = 2015, 'millstone'
 fi_path = "C:\\DATA\\GPS_MIT\\{}\\{}\\data\\".format(site, data_year)
 path = "C:\\code\\MIT-gps\\resources\\{}\\{}\\".format(data_year, site)
 
 lat1, lat2 = 30, 80
-lon1, lon2 = -125, -115
+# lon1, lon2 = -125, -115
+# lon1, lon2 = -95, -85
 if not os.path.exists(path):
     os.mkdir(path)
 
-# localtime = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
-localtime = [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]
 
-for localtime1 in localtime:
-    localtime2 = localtime1 + 1                                          # 18-19, ……, 23-24, 0-1, ……
-    fo_path = data_collect_and_write2txt(fi_path, path, data_year, localtime1, localtime2, lat1, lat2, lon1, lon2)
-    print(fo_path)
+localtime = [5, 18, 19, 20, 21]
+# localtime = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
+# lon = [-125, -95, -5, 25]
+lon = [-125]
+for lon1 in lon:
+    lon2 = lon1 + 10
+    for localtime1 in localtime:
+        localtime2 = localtime1 + 1  # 18-19, ……, 23-24, 0-1, ……
+        fo_path = data_collect_and_write2txt(fi_path, path, data_year, localtime1, localtime2, lat1, lat2, lon1, lon2)
+        print(fo_path)
 
 print("work done!")
