@@ -4,7 +4,6 @@
 import os
 import gc
 import time
-import datetime
 import numpy as np
 from scipy import interpolate
 import pandas as pd
@@ -17,15 +16,24 @@ def plot_tec_prof(year, glon, lt):
         os.makedirs(out_path)
 
     # 从bigTable中得到当前glon与lt，年份year中的所有行，以doy作为index
-    df = bigTable.query("year=={} & glon=={} & lt=={}".format(year, glon, lt)).set_index(['doy'])
+    df = bigTable_tec.query("year=={} & glon=={} & lt=={}".format(year, glon, lt)).set_index(['date', 'doy'])
     trough_min_lats = df["trough_min_lat"].fillna(0.0).astype(int)               # 用0填充nan
     df = df.drop(["year", "glon", "lt", "trough_min_lat"], axis=1)
 
+    index_cur_year = bigTable_kp.query("year=={} & glon=={} & lt=={}".format(year, glon, lt)).set_index(['date', 'doy'])
+    kp_index_cur_year = index_cur_year.drop(["year", "glon", "lt"], axis=1).kp
+
     # 开始做每一doy的tec 纬度剖面图
     lats = [_ for _ in range(30, 81)]
-    for doy in df.index:
-        print(doy)
-        mean_tec = df.loc[doy]
+    for date, doy in df.index:
+        # if year == 2017 and doy > 273:
+        #    break
+        time0 = time.time()
+        print(date, doy, glon, lt, end='  ')
+        mean_tec = df.loc[date, doy]
+        kp = kp_index_cur_year.loc[date, doy]
+        # print(mean_tec)
+        # print(kp)
 
         plt.scatter(lats, mean_tec, c='b', marker='o', s=20, label="TEC")
 
@@ -39,25 +47,30 @@ def plot_tec_prof(year, glon, lt):
         plt.xticks(diy_xticks)
         plt.ylim(0, 1.5 * mean_tec.max())
 
-        cur_min = trough_min_lats.loc[doy]
+        cur_min = trough_min_lats.loc[date, doy]
         if cur_min:                                             # 非0的数据为判定槽极小的位置
             plt.scatter(cur_min, mean_tec.loc["gdlat-{}°".format(cur_min)], c='r', marker='^', s=40, label='trough min')
 
-        figure_title = 'mean TEC lat profile  \n lt:{}-{}  glon:{}  year:{}  doy:{:3d}'.\
-            format(lt, lt+1, glon, year, doy)
+        figure_title = '{} mean TEC lat profile  \n lt:{}-{}  glon:{}  year:{}  doy:{:3d} kp:{}'.\
+            format(date, lt, lt+1, glon, year, doy, kp)
         plt.legend()
         plt.title(figure_title)
         plt.savefig(out_path + "{:03d}".format(doy))
         plt.close()
+        print("time cost : {}s".format(round(time.time()-time0, 2)))
 
     del df
+    del index_cur_year, kp_index_cur_year
     gc.collect()
 
     return True
 
 
-datapath = "C:\\DATA\\GPS_MIT\\millstone\\millstone_tec_profile.csv"
-bigTable = pd.read_csv(datapath, encoding='gb2312')
+tec_datapath = "C:\\DATA\\GPS_MIT\\millstone\\tec_profile_gdlat.csv"
+bigTable_tec = pd.read_csv(tec_datapath, encoding='gb2312')
+kp_datapath = "C:\\DATA\\GPS_MIT\\millstone\\kp_index.csv"
+bigTable_kp = pd.read_csv(kp_datapath, encoding='gb2312')
+
 figure_path = "C:\\DATA\\GPS_MIT\\millstone\\daily tec profiles\\"
 
 years = [2017, 2016, 2015, 2014, 2013, 2012]
