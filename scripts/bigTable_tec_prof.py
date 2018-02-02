@@ -27,7 +27,7 @@ def tec_gen_write2txt(year_datapath, glon_slt, lt_list):
             Table = file["Data"]["Table Layout"]
             hour, minute = Table["hour"], Table["min"]
             gdlat, glon, tec, dtec = Table["gdlat"], Table["glon"], Table["tec"], Table["dtec"]
-
+            file.close()
             # time1 = time.time()
             # print("time -- read data: {}".format(round(time1 - time0, 2)), end='        ')
 
@@ -51,11 +51,16 @@ def tec_gen_write2txt(year_datapath, glon_slt, lt_list):
                     """
                     [year, lon_c, lt1, doy, trough_min_lat, mean_tec_30, mean_tec_31, ……， mean_tec_80]
                     """
-                    data_of_1year.append([year, lon_c, lt1, cur_doy])
+                    data_of_1year.append([year, date, cur_doy, lon_c, lt1])
 
                     lats = []                                               # 得到记录对应纬度tec均值的列表
                     for _ in range(gdlat_low, gdlat_high + 1):
-                        lats.append(df_cur.query("gdlat == {}".format(_))["tec"].mean())
+                        lats.append(df_cur.query("gdlat=={}".format(_))["tec"].mean())
+
+                    # 除去极端值
+                    for _ in range(5, len(lats) - 5):                      # 大于1.5倍左右10个值均值视为异常，记为nan
+                        if lats[_] > 1.5 * np.nanmean(lats[_ - 5: _+5]):
+                            lats[_] = np.nan
 
                     # 找到极小的纬度, lats[0]-30°, 于是lats[15]对应45°，15:40对应[45:70]纬度范围
                     mean_tec, min_tec = np.nanmean(lats[15:40]), np.nanmin(lats[15:40])
@@ -65,18 +70,15 @@ def tec_gen_write2txt(year_datapath, glon_slt, lt_list):
                     else:
                         data_of_1year[-1].append(np.nan)                    # 极小大于均值80%的，写入nan
 
-                    # 写入极小值纬度及整个纬度剖面的tec值
+                    # 记录纬度剖面
                     data_of_1year[-1].extend([round(_, 2) for _ in lats])
                     print("len: ", len(data_of_1year))
                     del lats, df_cur
-
             del Table, hour, minute, gdlat, glon, tec, dtec, data_df
-            file.close()
             gc.collect()
             # time3 = time.time()
             # print("time -- get tec lat prof & trough min loc: {}".format(round(time3 - time2, 2)))
             print("the process of data at {} cost: {:.2f}".format(date, round(time.time()-time0, 2)))
-
         else:
             misplaced_files.append((year, filename))
     else:
@@ -86,10 +88,11 @@ def tec_gen_write2txt(year_datapath, glon_slt, lt_list):
         else:
             print("None")
 
-    df_columns_name = ["year", "glon", "lt", "doy", "trough_min_lat"] + ["gdlat-{}°".format(_) for _ in range(30, 81)]
+    df_columns_name = ["year", "date", "doy", "glon", "lt", "trough_min_lat"] + \
+                      ["gdlat-{}°".format(_) for _ in range(30, 81)]
     df_cur_year = pd.DataFrame(data_of_1year, columns=df_columns_name)
     # print("count of df_cur_year: ---------------------\n{}".format(df_cur_year.count()))
-    path_tmp = "C:\\DATA\\GPS_MIT\\{}\\tec_profile.csv".format(data_site)
+    path_tmp = "C:\\DATA\\GPS_MIT\\{}\\tec_profile_gdlat.csv".format(data_site)
     if not os.path.exists(path_tmp):
         df_cur_year.to_csv(path_tmp, index=False, encoding='gb2312')
     else:
@@ -107,5 +110,6 @@ glon_c = [-120, -90, 0, 30]
 gdlat_low, gdlat_high = 30, 80
 lt = [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]
 for year in year_list:
-    datapath = "C:\\DATA\\GPS_MIT\\{}\\{}\\data\\".format(data_site, year)
+    # datapath = "C:\\DATA\\GPS_MIT\\{}\\{}\\data\\".format(data_site, year)
+    datapath = "G:\\MIT research\\DATA\\GPS_MIT\\{}\\{}\\".format(year, data_site)
     tec_gen_write2txt(datapath, glon_c, lt)
