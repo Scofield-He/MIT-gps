@@ -39,20 +39,33 @@ def read_kp_index(year, glon_list, lt_list):
                         day_diff, ut = divmod(lt - glon // 15, 24)
                         begin_digit = 12 + 2 * int(ut // 3)
                         # end_digit = begin_digit + 2
-                        kp = int(line[begin_digit:begin_digit+2]) / 10
+                        kp_index = []                                    # 取当前3小时kp值及前2个3小时kp值
+                        if begin_digit >= 16:
+                            kp_index.append(int(line[begin_digit - 4: begin_digit - 2]) / 10)
+                            kp_index.append(int(line[begin_digit - 2: begin_digit]) / 10)
+                            kp_index.append(int(line[begin_digit:begin_digit+2]) / 10)
+                        elif begin_digit == 14:
+                            kp_index.append(int(last_line[26:28]) / 10)
+                            kp_index.append(int(line[12: 14]) / 10)
+                            kp_index.append(int(line[14: 16]) / 10)
+                        elif begin_digit == 12:
+                            kp_index.append(int(last_line[24: 26]) / 10)
+                            kp_index.append(int(last_line[26: 28]) / 10)
+                            kp_index.append(int(line[12: 14]) / 10)
 
-                        if begin_digit != 12:
-                            last_kp = int(line[begin_digit-2:begin_digit]) / 10
-                        else:
-                            last_kp = int(last_line[26:28]) / 10
-                        kp6 = round(((kp + last_kp/np.e) / (1 + 1/np.e)), 1)
+                        kp = kp_index[-1]
+                        kp9_sum, weight_sum = 0, 0
+                        for i in range(3):
+                            weight_sum += np.e ** (-i)
+                            kp9_sum += kp_index.pop() * np.e ** (-i)
+                        kp9 = round(kp9_sum / weight_sum, 1)
 
-                        last_line = line
-                        index_of_1year[-1].extend([kp, kp6, Cp, C9, sum_8kp, mean_8ap, f107])
+                        index_of_1year[-1].extend([kp, kp9, Cp, C9, sum_8kp, mean_8ap, f107])
                 print("{:.2f}s".format(time.time()-time0))
+            last_line = line
 
     # year, date, cur_doy, glon, lt
-    df_columns_name = ["year", "date", "doy", "glon", "lt", "kp", "kp6", "Cp", "C9", "sum_8kp", "mean_8ap", "F10.7"]
+    df_columns_name = ["year", "date", "doy", "glon", "lt", "kp", "kp9", "Cp", "C9", "sum_8kp", "mean_8ap", "F10.7"]
     df_cur_year = pd.DataFrame(index_of_1year, columns=df_columns_name)
     path_tmp = "C:\\DATA\\index\\kp_index.csv"
     if not os.path.exists(path_tmp):
@@ -66,7 +79,6 @@ def read_kp_index(year, glon_list, lt_list):
 
 
 data_site = 'millstone'
-gdlat_low, gdlat_high = 30, 80
 Year_list = [2017, 2016, 2015, 2014, 2013, 2012]
 Glon_c_list = [-120, -90, 0, 30]
 Lt_list = [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]
