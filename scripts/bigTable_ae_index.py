@@ -9,11 +9,11 @@ import pandas as pd
 # import gc
 
 
-def read_kp_index(year, glon_list, lt_list):
-    kp_index_filepath = "C:\\DATA\\index\\AE index_0101-1706_WDC-like format.txt"
+def read_ae_index(year, glon_list, lt_list):
+    ae_index_filepath = "C:\\DATA\\index\\AE index_0101-1706_WDC-like format.txt"
     index_of_1year = []
 
-    with open(kp_index_filepath, 'rb') as fi:
+    with open(ae_index_filepath, 'rb') as fi:
         last_line = ""
         for line in fi:
             line = line.strip().decode('utf-8')
@@ -83,4 +83,4 @@ Year_list = [2017, 2016, 2015, 2014, 2013, 2012]
 Glon_c_list = [-120, -90, 0, 30]
 Lt_list = [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]
 for Year in Year_list:
-    read_kp_index(year=Year, glon_list=Glon_c_list, lt_list=Lt_list)
+    read_ae_index(year=Year, glon_list=Glon_c_list, lt_list=Lt_list)
