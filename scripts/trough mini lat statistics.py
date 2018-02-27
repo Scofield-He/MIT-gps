@@ -15,21 +15,32 @@ def data_gen(glon_c, lt1):
     bigTable = pd.read_csv(filepath, encoding='gb2312')
     filepath_kp = "C:\\tmp\\sorted kp_index.csv"
     bigTable_kp = pd.read_csv(filepath_kp, encoding='gb2312')
+    filepath_AE = "C:\\tmp\\sorted AE_index.csv"
+    bigTable_AE = pd.read_csv(filepath_AE, encoding='gb2312')
 
     df_tec_prof = bigTable.query("glon == {} & lt == {}".format(glon_c, lt1))
-    print(df_tec_prof.__len__())
+    print("length of tec trough min dataframe: ", df_tec_prof.__len__())
+    # print(df_tec_prof[:5])
     trough_mini = df_tec_prof["trough_min_lat"]
 
     df_kp = bigTable_kp.query("glon == {} & lt == {}".format(glon_c, lt1))
-    print(df_kp.__len__())
+    print("length of kp index dataframe: ", df_kp.__len__())
+    print(df_kp[:5])
 
-    df_total = pd.merge(df_tec_prof, df_kp, how='inner')
-    print(len(df_total), df_total.columns)
-    print(df_total["kp"].describe())
+    df_ae = bigTable_AE.query(("glon == {} & lt == {}".format(glon_c, lt1))).drop(['date'], axis=1)
+    print("length of ae index dataframe: ", df_ae.__len__())
+    print(df_ae[:5])
+    # ae_index, ae6_index = df_ae["AE"], df_ae["AE6"]
 
-    df_new = df_kp.copy()
-    df_new["trough_min_lat"] = trough_mini                      # 指数后添加一列槽极小纬度值
+    # df_total = pd.merge(df_tec_prof, df_kp, how='inner')
+    # print(len(df_total), df_total.columns)
+    # print(df_total["kp"].describe())
+
+    # df_new = df_kp.copy()
+    df_kp.insert(5, "trough_min_lat", trough_mini)                # 插入槽极小的纬度，键值顺序相同，故直接插入即可
+    df_new = pd.merge(df_kp, df_ae, on=['year', 'doy', 'glon', 'lt'], how='outer')      # 按照键值合并
     print(len(df_new), df_new.columns)
+    print(df_new[:10])
     return df_new
 
 
@@ -51,7 +62,7 @@ def data_process(df, season):
 
 
 def data_plotIndex(df, Index, season):
-    data = df[['kp', 'kp6', 'C9', 'Cp', 'sum_8kp', 'mean_8ap', 'F10.7', 'trough_min_lat']]
+    data = df[['kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap', 'F10.7', 'trough_min_lat']]
     print("data corrcoef matrix: \n", data.corr())
 
     trough_min_lat = df["trough_min_lat"]
@@ -80,17 +91,17 @@ def data_plotIndex(df, Index, season):
     plt.ylabel('gdlat')
     plt.ylim(35, 65)
     plt.legend()
-    title = '2011-2017 {} glon_{}°lt_{}\n gdlat-{} linear fit'.format(season, glon, lt, Index)
+    title = '2012-2017 {} glon_{}°lt_{}\n gdlat-{} linear fit'.format(season, glon, lt, Index)
     plt.title(title)
     figure_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\all data\\"
-    figure1.savefig(figure_path + '{} 2011-2017 glon_{}°lt_{} gdlat-{} linear_fit'.format(season, glon, lt, Index))
-
+    figure1.savefig(figure_path + '{} 2012-2017 glon_{}°lt_{} gdlat-{} linear_fit'.format(season, glon, lt, Index))
+    plt.close()
     # figure2 = plt.figure(figsize=(8, 6))
 
     return True
 
 
-index_list = ['kp', 'kp6', 'C9', 'Cp', 'sum_8kp', 'mean_8ap']
+index_list = ['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap']
 season_list = ["winter", "equinox", "summer", "year"]
 glon, lt = -90, 22
 DF = data_gen(glon, lt)
