@@ -8,6 +8,7 @@ import numpy as np
 # from scipy import interpolate
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 
 
 def data_gen(glon_c, lt1):
@@ -25,11 +26,11 @@ def data_gen(glon_c, lt1):
 
     df_kp = bigTable_kp.query("glon == {} & lt == {}".format(glon_c, lt1))
     print("length of kp index dataframe: ", df_kp.__len__())
-    print(df_kp[:5])
+    # print(df_kp[:5])
 
     df_ae = bigTable_AE.query(("glon == {} & lt == {}".format(glon_c, lt1))).drop(['date'], axis=1)
     print("length of ae index dataframe: ", df_ae.__len__())
-    print(df_ae[:5])
+    # print(df_ae[:5])
     # ae_index, ae6_index = df_ae["AE"], df_ae["AE6"]
 
     # df_total = pd.merge(df_tec_prof, df_kp, how='inner')
@@ -40,7 +41,7 @@ def data_gen(glon_c, lt1):
     df_kp.insert(5, "trough_min_lat", trough_mini)                # 插入槽极小的纬度，键值顺序相同，故直接插入即可
     df_new = pd.merge(df_kp, df_ae, on=['year', 'doy', 'glon', 'lt'], how='outer')      # 按照键值合并
     print(len(df_new), df_new.columns)
-    print(df_new[:10])
+    # print(df_new[:10])
     return df_new
 
 
@@ -63,7 +64,7 @@ def data_process(df, season, y1, y2):
 
 
 def data_plotIndex(df, Index, season):
-    data = df[['kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap', 'F10.7', 'trough_min_lat']]
+    data = df[['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap', 'F10.7', 'trough_min_lat']]
     print("data corrcoef matrix: \n", data.corr())
 
     trough_min_lat = df["trough_min_lat"]
@@ -83,6 +84,7 @@ def data_plotIndex(df, Index, season):
     plt.scatter(mag_index, trough_min_lat, color='b', s=[_ for _ in count_of_point])
 
     z = list(np.polyfit(list(mag_index), list(trough_min_lat), 1))           # 线性拟合,得到ax + b中 a&b的值
+    parameters.append([lt, round(z[0], 2), round(z[1], 2), corrcoef])            # 记录斜率，截距及相关系数
     x = list(set(mag_index))
     y = [z[0] * _ + z[1] for _ in x]
     plt.plot(x, y, 'r--', label='{:.2f} * x + {:.2f}'.format(round(z[0], 2), round(z[1], 2)))
@@ -94,15 +96,61 @@ def data_plotIndex(df, Index, season):
     plt.legend()
     title = '{}-{} {} glon_{}°lt_{}\n gdlat-{} linear fit'.format(year1, year2, season, glon, lt, Index)
     plt.title(title)
-    figure_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-index\\{}\\".format(folder_name)
-    if not os.path.exists(figure_path):
-        os.mkdir(figure_path)
     figure1.savefig(figure_path + '{} {}-{} glon_{}°lt_{} gdlat-{} linear_fit'.
                     format(season, year1, year2, glon, lt, Index))
     plt.close()
-    # figure2 = plt.figure(figsize=(8, 6))
-
     return True
+
+
+def xtick_lt_formatter(x, pos):
+    return '{}'.format(int(x % 24))
+
+
+def param_lt(param):
+    Lt, slope, intercept, cc = param[0], param[1], param[2], param[3]
+    Lt = [_ + 24 if _ < 12 else _ for _ in Lt]
+    Lt.sort()
+    print(['{}'.format(_ % 24) for _ in Lt])
+
+    figure2 = plt.figure(figsize=(15, 6))
+    ax1 = figure2.add_subplot(221)
+    plt.sca(ax1)
+    plt.scatter(Lt, slope)
+    plt.xlabel('lt')
+    # plt.xticks([Lt], ['{}'.format(_ % 24) for _ in Lt])
+    ax1.xaxis.set_major_formatter(FuncFormatter(xtick_lt_formatter))
+    plt.ylabel('slope')
+
+    ax2 = figure2.add_subplot(222)
+    plt.sca(ax2)
+    plt.scatter(Lt, intercept)
+    plt.xlabel('lt')
+    # plt.xticks([Lt], [r'${}$'.format(_ % 24) for _ in Lt])
+    ax2.xaxis.set_major_formatter(FuncFormatter(xtick_lt_formatter))
+    plt.ylabel('intercept')
+
+    ax3 = figure2.add_subplot(223)
+    plt.sca(ax3)
+    plt.scatter(Lt, cc)
+    plt.xlabel('lt')
+    ax3.xaxis.set_major_formatter(FuncFormatter(xtick_lt_formatter))
+    plt.ylabel('corrcoef')
+
+    ax4 = figure2.add_subplot(224)
+    plt.sca(ax4)
+    plt.scatter(slope, intercept)
+    z = list(np.polyfit(slope, intercept, 1))         # 线性拟合,得到ax + b中 a&b的值
+    x = np.linspace(-3, -1.4, 9)
+    y = np.array([z[0] * _ + z[1] for _ in x])
+    plt.plot(x, y, 'r--', label='{:.2f} * x + {:.2f}'.format(round(z[0], 2), round(z[1], 2)))
+    plt.text(0.80, 0.80, 'cc = {}'.format(round(np.corrcoef(slope, intercept)[0][1], 2)),
+             transform=ax4.transAxes, color='black')
+    plt.xlabel('slope')
+    plt.ylabel('intercept')
+
+    figure2.suptitle("{}-{} glon_{}°".format(year1, year2, glon), fontsize=16, x=0.5, y=0.95)
+
+    figure2.savefig(figure_path + 'fitted coef - lt {}_{} {}°'.format(year1, year2, glon))
 
 
 # index_list = ['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap']
@@ -110,10 +158,18 @@ index_list = ['kp9']
 season_list = ["year"]
 glon = -90
 year1, year2 = 2015, 2016
+folder_name = '{}-{}_{}_lt'.format(year1, year2, glon)
+figure_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-lt\\{}\\".format(folder_name)
+if not os.path.exists(figure_path):
+    os.mkdir(figure_path)
+parameters = []
 for lt in [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]:
-    folder_name = '{}-{}_{}_lt'.format(year1, year2, glon)
     DF = data_gen(glon, lt)
     for ssn in season_list:
         DF1 = data_process(DF, ssn, year1, year2)
         for _ in index_list:
             data_plotIndex(DF1, _, ssn)
+parameters = np.array(parameters).T
+print(parameters)
+param_lt(parameters)
+print("work done!")
