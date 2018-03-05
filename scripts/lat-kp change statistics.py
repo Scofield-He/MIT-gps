@@ -1,7 +1,7 @@
 #! python3
 # -*- coding: utf-8 -*-
 
-# import os
+import os
 # import gc
 # import time
 import numpy as np
@@ -44,11 +44,12 @@ def data_gen(glon_c, lt1):
     return df_new
 
 
-def data_process(df, season):
+def data_process(df, season, y1, y2):
     print('count of df from function data_gen', len(df))
     df = df.dropna()
     print('count of not null trough min: ', len(df))
     df = df.query("35 < trough_min_lat <= 65 ")
+    df = df.query("{} <= year <= {}".format(y1, y2))
 
     if season == 'summer':
         ret = df.query("121 <= doy <= 243")
@@ -91,21 +92,35 @@ def data_plotIndex(df, Index, season):
     plt.ylabel('gdlat')
     plt.ylim(35, 65)
     plt.legend()
-    title = '2012-2017 {} glon_{}°lt_{}\n gdlat-{} linear fit'.format(season, glon, lt, Index)
+    title = '{}-{} {} glon_{}°lt_{}\n gdlat-{} linear fit'.format(year1, year2, season, glon, lt, Index)
     plt.title(title)
-    figure_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\all data\\"
-    figure1.savefig(figure_path + '{} 2012-2017 glon_{}°lt_{} gdlat-{} linear_fit'.format(season, glon, lt, Index))
+    figure_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-index\\{}\\".format(folder_name)
+    if not os.path.exists(figure_path):
+        os.mkdir(figure_path)
+    figure1.savefig(figure_path + '{} {}-{} glon_{}°lt_{} gdlat-{} linear_fit'.
+                    format(season, year1, year2, glon, lt, Index))
     plt.close()
     # figure2 = plt.figure(figsize=(8, 6))
 
     return True
 
 
-index_list = ['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap']
+# index_list = ['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap']
+"""
+index_list = ['AE', 'AE6', 'kp', 'kp9']
 season_list = ["winter", "equinox", "summer", "year"]
-glon, lt = -90, 22
-DF = data_gen(glon, lt)
-for ssn in season_list:
-    DF1 = data_process(DF, ssn)
-    for _ in index_list:
-        data_plotIndex(DF1, _, ssn)
+glon, lt = -90, 0
+year1, year2 = 2015, 2016
+"""
+
+index_list = ['kp9']
+season_list = ["year"]
+glon = -90
+year1, year2 = 2015, 2016
+for lt in [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]:
+    folder_name = '{}-{}_{}_lt'.format(year1, year2, glon)
+    DF = data_gen(glon, lt)
+    for ssn in season_list:
+        DF1 = data_process(DF, ssn, year1, year2)
+        for _ in index_list:
+            data_plotIndex(DF1, _, ssn)
