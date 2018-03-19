@@ -28,14 +28,14 @@ def df_aggregation(glon_c):
     trough_mini = df_tec["trough_min_lat"]
     df_kp = bigTable_kp.query("glon == {}".format(glon_c))
     df_ae = bigTable_AE.query(("glon == {}".format(glon_c))).drop(['date'], axis=1)
-    print(len(df_ae))            # AE指数截止时间2017-6-30日，因此df_ae数据少于df_kp
+    # print(len(df_ae))            # AE指数截止时间2017-6-30日，因此df_ae数据少于df_kp
     # print("length of tec trough min dataframe: ", df_tec_prof.__len__())
     # print("length of kp index dataframe: ", df_kp.__len__())
     # print("length of ae index dataframe: ", df_ae.__len__())
 
     df_kp.insert(5, "trough_min_lat", trough_mini)                # 插入槽极小的纬度，键值顺序相同，故直接插入即可
     df_new = pd.merge(df_kp, df_ae, on=['year', 'doy', 'glon', 'lt'], how='outer')      # 按照键值合并
-    print("length of df_new: {}\n".format(len(df_new)), df_new.columns)
+    # print("length of df_new: {}\n".format(len(df_new)), df_new.columns)
     if len(df_new) != len(df_kp):
         raise Exception("df merge Error")
     return df_new
@@ -83,9 +83,13 @@ def xtick_lt_formatter(x, _):
     return '{}'.format(int(x % 24))
 
 
-def plot_LatLt(season, df):
-    df_18_22 = df
-    lt, lat = df_18_22['lt'], df_18_22["trough_min_lat"]
+def plot_LatLt(df, ax):
+    df_dusk = df.query('18 <= lt <=23')
+    # corrcoef = np.corrcoef(df_dusk['lt'], df['trough_min_lat'])  # 计算相关系数
+    corrcoef = df_dusk['lt'].corr(df_dusk['trough_min_lat'])
+    print('cc between lt & lat before midnight: {}'.format(corrcoef))
+
+    lt, lat = df['lt'], df["trough_min_lat"]
     lt = [_ + 0.5 for _ in lt]
 
     lt = np.array([_ + 24 if _ < 12 else _ for _ in lt])            #
@@ -93,29 +97,27 @@ def plot_LatLt(season, df):
     lat = np.array(lat)
     # print('length of lat in season {} ;  {}'.format(season, len(lat)))
 
+    # 统计每个点出现的次数
     lat_lt = list(zip(lt, lat))
     count_of_point = []
     for _ in lat_lt:
         count_of_point.append(lat_lt.count(_))                       # 对每个点出现的次数进行统计
 
-    corrcoef = np.corrcoef(lt, lat)                                  # 计算相关系数
-    print('cc between lt & lat before midnight: {}'.format(corrcoef))
-
-    figure = plt.figure(figsize=(6, 4))
-    ax = figure.add_subplot(111)
+    # figure = plt.figure(figsize=(6, 4))
+    # ax = figure.add_subplot(111)
     plt.sca(ax)
-    plt.scatter(lt, lat, color='b', s=[_ / 2 for _ in count_of_point])
-    plt.text(0.80, 0.90, 'count:{}'.format(len(lat)), transform=ax.transAxes, color='black')
+    plt.scatter(lt, lat, color='b', s=[_ / 4 for _ in count_of_point])
+    plt.text(0.70, 0.80, '{}\ncount:{}'.format(ssn, len(lat)), transform=ax.transAxes, color='black')
     ax.xaxis.set_major_formatter(FuncFormatter(xtick_lt_formatter))
     ax.xaxis.set_major_locator(MultipleLocator(2))
     ax.xaxis.set_minor_locator(MultipleLocator(1))
-    plt.title('2014.9-2017.9 {} glon_{}° kp9[{}_{}]'.format(season, glon, index_range[0], index_range[1]))
+
     plt.xlabel('lt (h)')
     plt.ylabel('Geographic-Latitude (degree)')
     plt.ylim(35, 70)
 
-    plt.savefig(figure_path + '{}'.format(season))
-    plt.close()
+    # plt.savefig(figure_path + '{}'.format(season))
+    # plt.close()
     # plt.show()
     return True
 
@@ -136,10 +138,17 @@ for index_range in index_range_list:
         os.mkdir(figure_path)
 
     DF = df_aggregation(glon)  # 从3个csv文件中得到聚合df
-    for ssn in season_list:
+    figure = plt.figure(figsize=(10, 8))
+    for index, ssn in enumerate(season_list):
         print(ssn)
         DF1 = df_query(DF, ssn, year1, month1, day1, year2, month2, day2, index_name, index_range)
-        plot_LatLt(ssn, DF1)
+        ax1 = figure.add_subplot(221 + index)
+        plt.sca(ax1)
+        plot_LatLt(DF1, ax1)
+
+    figure.suptitle('2014.9-2017.9 glon_{}° kp9[{}_{}]'.format(glon, index_range[0], index_range[1]),
+                    fontsize=16, x=0.5, y=0.95)
+    figure.savefig(lt_path + 'trough_mini_lat -- lt kp9_{}-{}'.format(index_range[0], index_range[1]))
 
 
 # 取lat-lt图中同一lt下lat的均值或中值，在同一子图中作出mean(median) value - lt 线图，同一季节不同kp范围在一张图中；
