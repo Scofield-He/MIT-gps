@@ -74,24 +74,24 @@ def df_query(df, season, y1, m1, d1, y2, m2, d2, idx, idx_range):
     elif season != 'year':
         raise Exception('arg Error: season illegal')
 
-    df = df.query("{} <= {} <= {}".format(idx_range[0], idx, idx_range[1]))
+    df = df.query("{} <= {} < {}".format(idx_range[0], idx, idx_range[1]))
     print('length of df after query: ', len(df))
     return df
 
 
-def xtick_lt_formatter(x, pos):
+def xtick_lt_formatter(x, _):
     return '{}'.format(int(x % 24))
 
 
-def fit_LatLt(season, df):
+def plot_LatLt(season, df):
     df_18_22 = df
     lt, lat = df_18_22['lt'], df_18_22["trough_min_lat"]
     lt = [_ + 0.5 for _ in lt]
 
-    lt = np.array([_ + 24 if _ < 12 else _ for _ in lt])            # 便于处理分析
-    print('length of lt in season{} ;  {}'.format(season, len(lt)))
+    lt = np.array([_ + 24 if _ < 12 else _ for _ in lt])            #
+    # print('length of lt in season{} ;  {}'.format(season, len(lt)))
     lat = np.array(lat)
-    print('length of lat in season{} ;  {}'.format(season, len(lat)))
+    # print('length of lat in season {} ;  {}'.format(season, len(lat)))
 
     lat_lt = list(zip(lt, lat))
     count_of_point = []
@@ -115,7 +115,7 @@ def fit_LatLt(season, df):
     plt.ylim(35, 70)
 
     plt.savefig(figure_path + '{}'.format(season))
-    figure.clear()
+    plt.close()
     # plt.show()
     return True
 
@@ -125,17 +125,93 @@ year2, month2, day2 = 2017, 9, 1
 index_name = 'kp9'
 season_list = ['year', 'equinox', 'summer', 'winter']
 kp9_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-index_range = [3, 9]
-folder_name = 'glon[{}°]_[{}.{}-{}.{}]_Kp9[{}-{}]'.format(glon, year1, month1, year2, month2, index_range[0], index_range[1])
-figure_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-lt\\{}\\".format(folder_name)
-if not os.path.exists(figure_path):
-    os.mkdir(figure_path)
+index_range_list = [[0, 2], [2, 4], [4, 9]]
+lt_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-lt\\"
+# 作槽极小纬度lat与地方时lt关系图，分季；
+for index_range in index_range_list:
+    folder_name = 'glon[{}°]_[{}.{}-{}.{}]_Kp9[{}-{})'. \
+        format(glon, year1, month1, year2, month2, index_range[0], index_range[1])
+    figure_path = lt_path + "{}\\".format(folder_name)
+    if not os.path.exists(figure_path):
+        os.mkdir(figure_path)
 
-DF = df_aggregation(glon)                      # 从3个csv文件中得到聚合df
+    DF = df_aggregation(glon)  # 从3个csv文件中得到聚合df
+    for ssn in season_list:
+        print(ssn)
+        DF1 = df_query(DF, ssn, year1, month1, day1, year2, month2, day2, index_name, index_range)
+        plot_LatLt(ssn, DF1)
 
+
+# 取lat-lt图中同一lt下lat的均值或中值，在同一子图中作出mean(median) value - lt 线图，同一季节不同kp范围在一张图中；
+dic_mean_values = {}
+dic_median_values = {}
+dic_25percentile_values = {}
+dic_75percentile_values = {}
+
+lt_list = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
 for ssn in season_list:
-    print(ssn)
-    DF1 = df_query(DF, ssn, year1, month1, day1, year2, month2, day2, index_name, index_range)
-    fit_LatLt(ssn, DF1)
+    dic_median_values[ssn], dic_mean_values[ssn] = {}, {}
+    dic_25percentile_values[ssn], dic_75percentile_values[ssn] = {}, {}
+    for index_range in index_range_list:
+        # dic_mean_values[ssn]['kp9_{}-{}'.format(index_range[0], index_range[1])] = []
+        dic_median_values[ssn]['kp9_{}-{}'.format(index_range[0], index_range[1])] = []
+        dic_25percentile_values[ssn]['kp9_{}-{}'.format(index_range[0], index_range[1])] = []
+        dic_75percentile_values[ssn]['kp9_{}-{}'.format(index_range[0], index_range[1])] = []
 
+        DF = df_aggregation(glon)
+        DF1 = df_query(DF, ssn, year1, month1, day1, year2, month2, day2, index_name, index_range)
+        data = DF1[['lt', 'trough_min_lat']]
+        for localtime in lt_list:
+            data_lt = data.query("lt == {}".format(localtime))
+            # dic_mean_values[ssn]['kp9_{}-{}'.format(index_range[0], index_range[1])].append(
+            #    round(data_lt['trough_min_lat'].mean(), 2))
+            dic_median_values[ssn]['kp9_{}-{}'.format(index_range[0], index_range[1])].append(
+                data_lt['trough_min_lat'].median())
+            dic_25percentile_values[ssn]['kp9_{}-{}'.format(index_range[0], index_range[1])].append(
+                data_lt['trough_min_lat'].quantile(0.25))
+            dic_75percentile_values[ssn]['kp9_{}-{}'.format(index_range[0], index_range[1])].append(
+                data_lt['trough_min_lat'].quantile(0.75))
+
+# print(dic_mean_values)
+print(dic_median_values)
+print(dic_25percentile_values)
+lt_list = [_ + 24 if _ < 12 else _ for _ in lt_list]
+fig = plt.figure(figsize=(10, 8))
+
+for index, ssn in enumerate(season_list):
+    ax2 = fig.add_subplot(221 + index)
+    plt.sca(ax2)
+
+    plt.plot(lt_list, dic_median_values[ssn]['kp9_0-2'], 'b', label='kp9 in [0, 2]')
+    y_error_0 = [[i - j for i, j in zip(dic_median_values[ssn]['kp9_0-2'], dic_25percentile_values[ssn]['kp9_0-2'])],
+                 [i - j for i, j in zip(dic_75percentile_values[ssn]['kp9_0-2'], dic_median_values[ssn]['kp9_0-2'])]]
+    plt.errorbar(lt_list, dic_median_values[ssn]['kp9_0-2'],
+                 yerr=y_error_0, fmt='-o', color='b')
+
+    plt.plot(lt_list, dic_median_values[ssn]['kp9_2-4'], 'g', label='kp9 in [2, 4]')
+    y_error_2 = [[i - j for i, j in zip(dic_median_values[ssn]['kp9_2-4'], dic_25percentile_values[ssn]['kp9_2-4'])],
+                 [i - j for i, j in zip(dic_75percentile_values[ssn]['kp9_2-4'], dic_median_values[ssn]['kp9_2-4'])]]
+    plt.errorbar(lt_list, dic_median_values[ssn]['kp9_2-4'],
+                 yerr=y_error_2, fmt='-o', color='g')
+
+    plt.plot(lt_list, dic_median_values[ssn]['kp9_4-9'], 'r', label='kp9 in [4, 9]')
+    y_error_4 = [[i - j for i, j in zip(dic_median_values[ssn]['kp9_4-9'], dic_25percentile_values[ssn]['kp9_4-9'])],
+                 [i - j for i, j in zip(dic_75percentile_values[ssn]['kp9_4-9'], dic_median_values[ssn]['kp9_4-9'])]]
+    plt.errorbar(lt_list, dic_median_values[ssn]['kp9_4-9'],
+                 yerr=y_error_4, fmt='-o', color='r')
+
+    plt.text(0.3, 0.85, '{}'.format(ssn), transform=ax2.transAxes, color='black')
+    # plt.text(0.80, 0.90, 'count:{}'.format(len(lat)), transform=ax.transAxes, color='black')
+    plt.legend()
+    plt.xlabel('Local time (h)')
+    plt.xlim(17, 30)
+    plt.xticks(lt_list, [_ - 24 if _ >= 24 else _ for _ in lt_list])
+    plt.ylabel('Geographic-Lat (degree)')
+    plt.ylim(40, 65)
+
+fig.suptitle("{}.{}-{}.{} glon_{}° trough_mini_lat-lt".format(year1, month1, year2, month2, glon),
+             fontsize=16, x=0.5, y=0.95)
+fig.savefig(lt_path + 'trough_mini_lat -- lt _ with error bar')
+# plt.show()
+fig.clear()
 print("work done!")
