@@ -23,11 +23,13 @@ def plot_tec_prof(year, glon, lt):
     index_cur_year = bigTable_kp.query("year=={} & glon=={} & lt=={}".format(year, glon, lt)).set_index(['date', 'doy'])
     kp_index_cur_year = index_cur_year.drop(["year", "glon", "lt"], axis=1).kp
 
-    # 开始做每一doy的tec 纬度剖面图
+    # 开始作每一doy的tec 纬度剖面图
     lats = [_ for _ in range(30, 81)]
     for date, doy in df.index:
-        # if year == 2017 and doy > 273:
-        #    break
+        # if doy not in [353]:
+        #    continue
+        if year == 2017 and doy > 273:
+            break
         time0 = time.time()
         print(date, doy, glon, lt, end='  ')
         mean_tec = df.loc[date, doy]
@@ -35,6 +37,7 @@ def plot_tec_prof(year, glon, lt):
         # print(mean_tec)
         # print(kp)
 
+        # fig = plt.figure(figsize=(8, 4))
         plt.scatter(lats, mean_tec, c='b', marker='o', s=20, label="TEC")
 
         w = np.isnan(mean_tec)                                  # 插值，处理nan情况
@@ -45,7 +48,10 @@ def plot_tec_prof(year, glon, lt):
         plt.xlim(30, 80)
         diy_xticks = list(np.linspace(30, 80, 26))
         plt.xticks(diy_xticks)
-        plt.ylim(0, 1.5 * mean_tec.max())
+        plt.xlabel("Geographic Latitude(degree)")
+        plt.ylim(0, min(2 * mean_tec.mean(), 20))
+        # plt.ylim(0, 8)
+        plt.ylabel("TEC(TECU)")
 
         cur_min = trough_min_lats.loc[date, doy]
         if cur_min:                                             # 非0的数据为判定槽极小的位置
@@ -53,11 +59,14 @@ def plot_tec_prof(year, glon, lt):
 
         figure_title = '{} mean TEC lat profile  \n lt:{}-{}  glon:{}  year:{}  doy:{:3d} kp:{}'.\
             format(date, lt, lt+1, glon, year, doy, kp)
+        # figure_title = '{} lt:{}-{}  glon:{}'.format(date, lt, lt + 1, glon)
         plt.legend()
         plt.title(figure_title)
         plt.savefig(out_path + "{:03d}".format(doy))
+        # plt.savefig('C:\\Users\\user\\Desktop\\to liujing\\' + '{:03d}'.format(doy))
         plt.close()
         print("time cost : {}s".format(round(time.time()-time0, 2)))
+        # break
 
     del df
     del index_cur_year, kp_index_cur_year
@@ -73,11 +82,10 @@ bigTable_kp = pd.read_csv(kp_datapath, encoding='gb2312')
 
 figure_path = "C:\\DATA\\GPS_MIT\\millstone\\daily tec profiles\\"
 
-years = [2017, 2016, 2015, 2014, 2013, 2012]
-glon_list = [-120, -90, 0, 30]
-lt_list = [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]
-
-
+years = [2017, 2016, 2015, 2014]
+glon_list = [0]
+# lt_list = [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]
+lt_list = [22, 23, 0]
 for Year in years:
     for Glon in glon_list:
         for Lt in lt_list:

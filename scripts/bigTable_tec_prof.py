@@ -34,6 +34,7 @@ def tec_gen_write2txt(year_datapath, glon_slt, lt_list):
             data_df = pd.DataFrame(
                 {'hour': hour, 'minute': minute, 'gdlat': gdlat, 'glon': glon, 'tec': tec, 'dtec': dtec})
 
+            # 计算得到地方时
             data_df["lt"] = round((data_df['hour'] + data_df['minute'] / 60 + data_df['glon'] / 15) % 24, 2)
 
             # print(data_df.loc[1])
