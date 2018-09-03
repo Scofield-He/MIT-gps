@@ -18,7 +18,8 @@ def plot_daily_tec_profile(cur_doy, lats, tec, is_min, lat_min, min_tec, C9):
     # plt.ylim(0, 30)
 
     plt.plot(lats, tec, 'bo', label='TEC')                      # 蓝色○，每个纬度的TEC均值
-    x = list(range(30, 80))
+    lat_max = max(lats)
+    x = list(range(30, lat_max))
     y = interpolate.UnivariateSpline(lats, tec, s=5)(x)         # 插值
     plt.plot(x, y, 'k--', label='interpolate profile')
 

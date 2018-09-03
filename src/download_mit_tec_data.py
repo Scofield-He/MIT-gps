@@ -19,7 +19,8 @@ def download_mit_tec_data(y1, m1, d1, y2, m2, d2, path):
     outpath = path + '{}\\data\\'.format(y1)
     print(outpath)
     if not os.path.exists(outpath):
-        os.mkdir(path)
+        os.makedirs(outpath)
+        # os.mkdir(path)
     Data = madrigalWeb.madrigalWeb.MadrigalData(madrigalUrl)
     print('get access')
     print()
@@ -49,8 +50,8 @@ def download_mit_tec_data(y1, m1, d1, y2, m2, d2, path):
 # out_path = 'E:\\master\\DATA\\GPS_MIT\\'
 out_path = "C:\\DATA\\GPS_MIT\\millstone\\"
 # out_path = "G:\\research\\DATA\\GPS_MIT\\"
-y0, m0, d0 = 2017, 1, 1
-y, m, d = 2017, 11, 14
+y0, m0, d0 = 2003, 11, 1
+y, m, d = 2004, 3, 1
 download_mit_tec_data(y0, m0, d0, y, m, d, out_path)
 
 """
