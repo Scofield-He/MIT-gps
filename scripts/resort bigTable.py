@@ -7,7 +7,8 @@ import pandas as pd
 import gc
 
 
-bigTable_path = "C:\\tmp\\tec_profile_gdlat.csv"
+# bigTable_path = "C:\\tmp\\tec_profile_gdlat.csv"
+bigTable_path = "C:\\tmp\\kp_index.csv"
 bigTable = pd.read_csv(bigTable_path, encoding='gb2312')
 
 year_list = [2017, 2016, 2015, 2014, 2013, 2012]
@@ -25,6 +26,7 @@ for year in year_list:
             del new_df
             gc.collect()
 
-df.to_csv("C:\\tmp\\sorted tec_profile_gdlat.csv", index=False, encoding='gb2312')
+# df.to_csv("C:\\tmp\\sorted tec_profile_gdlat.csv", index=False, encoding='gb2312')
+df.to_csv("C:\\tmp\\sorted kp_index.csv", index=False, encoding='gb2312')
 print('time cost: {}s'.format(round(time.time()-time0, 2)))
 print("done")

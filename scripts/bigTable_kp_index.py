@@ -65,7 +65,7 @@ def read_kp_index(year, glon_list, lt_list):
             last_line = line
 
     # year, date, cur_doy, glon, lt
-    df_columns_name = ["year", "date", "doy", "glon", "lt", "kp", "kp9", "Cp", "C9", "sum_8kp", "mean_8ap", "F10.7"]
+    df_columns_name = ["year", "date", "doy", "glon", "lt", "Kp", "Kp9", "Cp", "C9", "sum_8kp", "mean_8ap", "F10.7"]
     df_cur_year = pd.DataFrame(index_of_1year, columns=df_columns_name)
     path_tmp = "C:\\DATA\\index\\kp_index.csv"
     if not os.path.exists(path_tmp):
