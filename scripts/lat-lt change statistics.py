@@ -4,6 +4,7 @@
 import os
 # import gc
 # import time
+import datetime
 import numpy as np
 # from scipy import interpolate
 import pandas as pd
@@ -45,12 +46,15 @@ def data_gen(glon_c, lt1):
     return df_new
 
 
-def data_process(df, season, y1, y2):
+def data_process(df, season, y1, m1, d1, y2, m2, d2):
     print('count of df from function data_gen', len(df))
     df = df.dropna()
     print('count of not null trough min: ', len(df))
-    df = df.query("35 < trough_min_lat <= 65 ")
-    df = df.query("{} <= year <= {}".format(y1, y2))
+    # df = df.query("35 < trough_min_lat <= 70 ")
+    doy1 = datetime.date(y1, m1, d1).timetuple().tm_yday
+    doy2 = datetime.date(y2, m2, d2).timetuple().tm_yday
+    df = df.query("({} < year < {}) | (year == {} & doy >= {}) | (year == {} & doy <= {}) "
+                  .format(y1, y2, y1, doy1, y2, doy2))
 
     if season == 'summer':
         ret = df.query("121 <= doy <= 243")
@@ -63,9 +67,9 @@ def data_process(df, season, y1, y2):
     return ret
 
 
-def data_plotIndex(df, Index, season):
-    data = df[['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap', 'F10.7', 'trough_min_lat']]
-    print("data corrcoef matrix: \n", data.corr())
+def record_coef(df, Index):
+    # data = df[['AE', 'AE6', 'kp', 'kp9', 'F10.7', 'trough_min_lat']]
+    # print("data corrcoef matrix: \n", data.corr())
 
     trough_min_lat = df["trough_min_lat"]
     mag_index = df[Index]
@@ -73,46 +77,27 @@ def data_plotIndex(df, Index, season):
     corrcoef = round(mag_index.corr(trough_min_lat), 2)
     print('corrcoef between kp and trough min lat: ', corrcoef)
 
-    loc_and_index = list(zip(mag_index, trough_min_lat))          # 统计每个点的个数
-    count_of_point = []
-    for _ in loc_and_index:
-        count_of_point.append(loc_and_index.count(_))
+    z = list(np.polyfit(list(mag_index), list(trough_min_lat), 1))         # 线性拟合,得到ax + b中 a&b的值
+    lt_seq = lt if lt > 12 else lt + 24                                    # 使lt值易于按照时间排序
+    parameters.append([lt_seq, round(z[0], 2), round(z[1], 2), corrcoef])  # 记录斜率，截距及相关系数
 
-    figure1 = plt.figure(figsize=(8, 6))                         # 所有数据做线性拟合，重合的数据用点的大小表示数量
-    ax1 = figure1.add_subplot(111)
-    plt.sca(ax1)
-    plt.scatter(mag_index, trough_min_lat, color='b', s=[_ for _ in count_of_point])
-
-    z = list(np.polyfit(list(mag_index), list(trough_min_lat), 1))           # 线性拟合,得到ax + b中 a&b的值
-    parameters.append([lt, round(z[0], 2), round(z[1], 2), corrcoef])            # 记录斜率，截距及相关系数
-    x = list(set(mag_index))
-    y = [z[0] * _ + z[1] for _ in x]
-    plt.plot(x, y, 'r--', label='{:.2f} * x + {:.2f}'.format(round(z[0], 2), round(z[1], 2)))
-    plt.text(0.72, 0.82, 'cc = {} count: {}'.format(corrcoef, len(trough_min_lat)),
-             transform=ax1.transAxes, color='black')
-    plt.xlabel(Index)
-    plt.ylabel('gdlat')
-    plt.ylim(35, 65)
-    plt.legend()
-    title = '{}-{} {} glon_{}°lt_{}\n gdlat-{} linear fit'.format(year1, year2, season, glon, lt, Index)
-    plt.title(title)
-    figure1.savefig(figure_path + '{} {}-{} glon_{}°lt_{} gdlat-{} linear_fit'.
-                    format(season, year1, year2, glon, lt, Index))
-    plt.close()
     return True
 
 
-def xtick_lt_formatter(x, pos):
+def xtick_lt_formatter(x, _):
     return '{}'.format(int(x % 24))
 
 
 def param_lt(param):
+    print(param)
     Lt, slope, intercept, cc = param[0], param[1], param[2], param[3]
+    """
     Lt = [_ + 24 if _ < 12 else _ for _ in Lt]
     Lt.sort()
+    """
     print(['{}'.format(_ % 24) for _ in Lt])
 
-    figure2 = plt.figure(figsize=(15, 6))
+    figure2 = plt.figure(figsize=(9, 5))
     ax1 = figure2.add_subplot(221)
     plt.sca(ax1)
     plt.scatter(Lt, slope)
@@ -148,28 +133,36 @@ def param_lt(param):
     plt.xlabel('slope')
     plt.ylabel('intercept')
 
-    figure2.suptitle("{}-{} glon_{}°".format(year1, year2, glon), fontsize=16, x=0.5, y=0.95)
+    figure2.suptitle("{}-{} glon_{}°Kp9".format(year1, year2, glon), fontsize=16, x=0.5, y=0.95)
+    # figure2.savefig(figure_path + 'fitted coef - lt {}_{} glon_{}° Kp9'.format(year1, year2, glon))
+    plt.show()
+    return True
 
-    figure2.savefig(figure_path + 'fitted coef - lt {}_{} {}°'.format(year1, year2, glon))
 
+if __name__ == '__main__':
+    # index_list = ['AE', 'AE6', 'kp', 'kp9']
+    index_list = ['kp9']
+    season_list = ["year"]
+    kp9_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
-# index_list = ['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap']
-index_list = ['kp9']
-season_list = ["year"]
-glon = -90
-year1, year2 = 2015, 2016
-folder_name = '{}-{}_{}_lt'.format(year1, year2, glon)
-figure_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-lt\\{}\\".format(folder_name)
-if not os.path.exists(figure_path):
-    os.mkdir(figure_path)
-parameters = []
-for lt in [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]:
-    DF = data_gen(glon, lt)
-    for ssn in season_list:
-        DF1 = data_process(DF, ssn, year1, year2)
-        for _ in index_list:
-            data_plotIndex(DF1, _, ssn)
-parameters = np.array(parameters).T
-print(parameters)
-param_lt(parameters)
-print("work done!")
+    glon = -90
+    year1, month1, day1 = 2014, 9, 1
+    year2, month2, day2 = 2017, 9, 1
+    parameters = []
+
+    for lt in [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]:
+        DF = data_gen(glon, lt)
+        for ssn in season_list:
+            DF1 = data_process(DF, ssn, year1, month1, day1, year2, month2, day2)
+            folder_name = '{}.{}.{}-{}.{}.{}_{}_lt'.format(year1, month1, day1, year2, month2, day2, glon)
+            figure_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-lt\\{}\\".format(folder_name)
+            if not os.path.exists(figure_path):
+                os.mkdir(figure_path)
+
+            for _ in index_list:
+                record_coef(DF1, _)  # 记录槽极小位置与对应
+    parameters.sort()  # 按照第一列，即lt排序
+    parameters = np.array(parameters).T  # 转置，以方便取各行
+    print(parameters)
+    param_lt(parameters)
+    print("work done!")

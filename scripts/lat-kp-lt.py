@@ -92,11 +92,12 @@ def get_median_percentiles(ssn_list, df):
 
             DF2 = DF1.query("lt == {}".format(lt))
             data = DF2[['kp9', 'trough_min_lat']]
-            data.loc[:, 'kp9'] = [np.floor(_) for _ in data['kp9']]          # 向下取整，range(0, 9, 1)
+            # data.loc[:, 'kp9'] = [np.floor(_) for _ in data['kp9']]          # 向下取整，range(0, 9, 1)
+            data.loc[:, 'kp9'] = [0.5 * (_ // 0.5) for _ in data['kp9']]
 
             for kp9_index in kp9_list:
                 data_kp9 = data.query('kp9 == {}'.format(kp9_index))
-                if len(data_kp9['trough_min_lat']) > 3:
+                if len(data_kp9['trough_min_lat']) > 0:
                     dic_median_values[ssn][lt_str].append(data_kp9['trough_min_lat'].median())
                     dic_25percentile_values[ssn][lt_str].append(data_kp9['trough_min_lat'].quantile(0.25))
                     dic_75percentile_values[ssn][lt_str].append(data_kp9['trough_min_lat'].quantile(0.75))
@@ -128,7 +129,17 @@ def get_fitted_line(ssn_list, df):
     return dic_fitted_values
 
 
-def plot_fig(ssn_list, kp9_lst, dic_median, dic_25, dic_75, dic_fitted):
+def plot_fig(ssn_list, kp9_lst, dic_median, dic_25, dic_75, dic_fitted, plot_med=False):
+    """
+    :param ssn_list: 4个季节
+    :param kp9_lst: 分辨率1
+    :param dic_median: 每一kp9的槽极小纬度中值
+    :param dic_25: 槽极小纬度1/4分位数
+    :param dic_75: 槽极小纬度3/4分位数
+    :param dic_fitted: 线性拟合线段的x, y值
+    :param plot_med: False as default, which means plot fitted segment;True for median & percentiles
+    :return: none
+    """
     fig = plt.figure(figsize=(9, 7))
 
     for index, ssn in enumerate(ssn_list):
@@ -137,12 +148,14 @@ def plot_fig(ssn_list, kp9_lst, dic_median, dic_25, dic_75, dic_fitted):
         colors = 'rgbyck'
         for idx, lt in enumerate(lt_list):                  # 每张图6个地方时，6条线
             lt_str = 'lt_{}'.format(lt)
-            # plt.plot(dic_fitted[ssn][lt_str][0], dic_fitted[ssn][lt_str][1], color=colors[idx],
-            #          label='lt={}'.format(lt))
-            y_err = [[i - j for i, j in zip(dic_median[ssn][lt_str], dic_25[ssn][lt_str])],
-                     [i - j for i, j in zip(dic_75[ssn][lt_str], dic_median[ssn][lt_str])]]
-            plt.errorbar(kp9_lst, dic_median[ssn][lt_str], yerr=y_err, color=colors[idx], fmt='-o',
+            if not plot_med:
+                plt.plot(dic_fitted[ssn][lt_str][0], dic_fitted[ssn][lt_str][1], color=colors[idx],
                          label='lt={}'.format(lt))
+            else:
+                y_err = [[i - j for i, j in zip(dic_median[ssn][lt_str], dic_25[ssn][lt_str])],
+                         [i - j for i, j in zip(dic_75[ssn][lt_str], dic_median[ssn][lt_str])]]
+                plt.errorbar(kp9_lst, dic_median[ssn][lt_str], yerr=y_err, color=colors[idx], fmt='-o',
+                             label='lt={}'.format(lt))
         plt.text(0.2, 0.10, '{}'.format(ssn), transform=ax2.transAxes, color='black')
         plt.legend()
         plt.xlabel('Kp9 index')
@@ -156,27 +169,29 @@ def plot_fig(ssn_list, kp9_lst, dic_median, dic_25, dic_75, dic_fitted):
         ax2.yaxis.set_minor_locator(MultipleLocator(1))
     fig.suptitle("{}.{}-{}.{} glon_{}° trough_mini_lat-kp9".format(year1, month1, year2, month2, glon),
                  fontsize=16, x=0.5, y=0.95)
-    fig.savefig(kp_path + '01 _ median & percentiles')
-    # plt.show()
+    # fig.savefig(kp_path + '00 _ median & percentiles')
+    plt.show()
     fig.clear()
 
 
-glon = -90
-year1, month1, day1 = 2014, 9, 1
-year2, month2, day2 = 2017, 9, 1
-index_name = 'kp9'
-season_list = ['equinox', 'summer', 'winter', 'year']
-kp9_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-lt_list = [19, 21, 23, 1, 3, 5]
-kp_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-index\\"
-folder_name = 'glon_{}°{}.{}-{}.{}'.format(glon, year1, month1, year2, month2)
-figure_path = kp_path + "{}\\".format(folder_name)
-if not os.path.exists(figure_path):
-    os.mkdir(figure_path)
+if __name__ == '__main__':
+    glon = -90
+    year1, month1, day1 = 2014, 9, 1
+    year2, month2, day2 = 2017, 8, 31
+    index_name = 'kp9'
+    season_list = ['equinox', 'summer', 'winter', 'year']
+    kp9_list = np.linspace(0, 8, 9)
+    lt_list = [19, 21, 0, 3]
+    kp_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-index\\"
+    folder_name = 'glon_{}°{}.{}-{}.{}'.format(glon, year1, month1, year2, month2)
+    figure_path = kp_path + "{}\\".format(folder_name)
+    if not os.path.exists(figure_path):
+        os.mkdir(figure_path)
 
-DF = df_aggregation(glon)                      # 从3个csv文件中得到聚合df
+    DF = df_aggregation(glon)  # 从3个csv文件中得到聚合df
 
-dict_median, dict_25, dict_75 = get_median_percentiles(season_list, DF)
-dict_fitted = get_fitted_line(season_list, DF)
-plot_fig(season_list, kp9_list, dict_median, dict_25, dict_75, dict_fitted)
-print("work done!")
+    dict_median, dict_25, dict_75 = get_median_percentiles(season_list, DF)
+    dict_fitted = get_fitted_line(season_list, DF)  # 各季节，各地方时，得到槽极小与磁场指数的线性拟合x，y值；
+    plot_fig(season_list, kp9_list, dict_median, dict_25, dict_75, dict_fitted, True)
+    # True作中值及上下四分位数、False作拟合线
+    print("work done!")

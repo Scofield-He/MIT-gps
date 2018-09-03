@@ -4,6 +4,7 @@
 import os
 # import gc
 # import time
+import datetime
 import numpy as np
 # from scipy import interpolate
 import pandas as pd
@@ -44,12 +45,15 @@ def data_gen(glon_c, lt1):
     return df_new
 
 
-def data_process(df, season, y1, y2):
+def data_process(df, season, y1, y2, m1, m2, d1, d2):
     print('count of df from function data_gen', len(df))
     df = df.dropna()
     print('count of not null trough min: ', len(df))
-    df = df.query("35 < trough_min_lat <= 65 ")
-    df = df.query("{} <= year <= {}".format(y1, y2))
+    df = df.query("35 < trough_min_lat <= 70 ")
+    doy1 = datetime.date(y1, m1, d1).timetuple().tm_yday
+    doy2 = datetime.date(y2, m2, d2).timetuple().tm_yday
+    df = df.query("({} < year < {}) | (year == {} & doy >= {}) | (year == {} & doy <= {}) "
+                  .format(y1, y2, y1, doy1, y2, doy2))
 
     if season == 'summer':
         ret = df.query("121 <= doy <= 243")
@@ -90,7 +94,7 @@ def data_plotIndex(df, Index, season):
              transform=ax1.transAxes, color='black')
     plt.xlabel(Index)
     plt.ylabel('gdlat')
-    plt.ylim(35, 65)
+    plt.ylim(40, 75)
     plt.legend()
     title = '{}-{} {} glon_{}°lt_{}\n gdlat-{} linear fit'.format(year1, year2, season, glon, lt, Index)
     plt.title(title)
@@ -100,27 +104,28 @@ def data_plotIndex(df, Index, season):
     figure1.savefig(figure_path + '{} {}-{} glon_{}°lt_{} gdlat-{} linear_fit'.
                     format(season, year1, year2, glon, lt, Index))
     plt.close()
-    # figure2 = plt.figure(figsize=(8, 6))
-
     return True
 
 
-# index_list = ['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap']
-"""
-index_list = ['AE', 'AE6', 'kp', 'kp9']
-season_list = ["winter", "equinox", "summer", "year"]
-glon, lt = -90, 0
-year1, year2 = 2015, 2016
-"""
+if __name__ == '__main__':
+    # index_list = ['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap']
+    # [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]
+    """
+    index_list = ['AE', 'AE6', 'kp', 'kp9']
+    season_list = ["winter", "equinox", "summer", "year"]
+    glon, lt = -90, 0
+    year1, year2 = 2015, 2016
+    """
 
-index_list = ['kp9']
-season_list = ["year"]
-glon = -90
-year1, year2 = 2015, 2016
-for lt in [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]:
-    folder_name = '{}-{}_{}_lt'.format(year1, year2, glon)
-    DF = data_gen(glon, lt)
-    for ssn in season_list:
-        DF1 = data_process(DF, ssn, year1, year2)
-        for _ in index_list:
-            data_plotIndex(DF1, _, ssn)
+    index_list = ['AE', 'AE6', 'kp', 'kp9', 'C9', 'Cp', 'sum_8kp', 'mean_8ap']
+    season_list = ["year", "winter", "equinox", "summer"]
+    glon = -120
+    year1, month1, day1 = 2014, 9, 1
+    year2, month2, day2 = 2017, 9, 1
+    for lt in [19, 4]:
+        folder_name = '{}.{}.{}-{}.{}.{}_{}_lt'.format(year1, month1, day1, year2, month2, day2, glon)
+        DF = data_gen(glon, lt)                                                   # 将槽极小位置、kp指数等聚合到一个表中
+        for ssn in season_list:
+            DF1 = data_process(DF, ssn, year1, year2, month1, month2, day1, day2)  # 得到对应时间范围内某季节的dataframe
+            for _ in index_list:
+                data_plotIndex(DF1, _, ssn)  # 作出某地方时，某时段内，槽极小位置随各指数的线性关系变化；

@@ -200,22 +200,24 @@ def plot_fig(ssn_list, lt_lst, dic_median, dic_25, dic_75):
     # plt.show()
     fig.clear()
 
-glon = -90
-year1, month1, day1 = 2014, 9, 1
-year2, month2, day2 = 2017, 9, 1
-index_name = 'kp9'
-season_list = ['equinox', 'summer', 'winter', 'year']
-kp9_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-index_range_list = [[0, 2], [2, 4], [4, 9]]
-lt_list = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
-lt_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-lt\\"
-# 作槽极小纬度lat与地方时lt关系图，分季；
 
-DF = df_aggregation(glon)  # 从3个csv文件中得到聚合df
-plot_lat_lt(season_list, index_range_list)
+if __name__ == '__main__':
+    glon = -90
+    year1, month1, day1 = 2014, 9, 1
+    year2, month2, day2 = 2017, 9, 1
+    index_name = 'kp9'
+    season_list = ['equinox', 'summer', 'winter', 'year']
+    kp9_list = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    index_range_list = [[0, 2], [2, 4], [4, 9]]
+    lt_list = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
+    lt_path = "C:\\DATA\\GPS_MIT\\millstone\\summary graph\\scatter plot\\lat-lt\\"
+    # 作槽极小纬度lat与地方时lt关系图，分季；
 
-# 取lat-lt图中同一lt下lat的均值或中值，在同一子图中作出mean(median) value - lt 线图，同一季节不同kp范围在一张图中；
-dict_median, dict_25, dict_75 = get_median_percentiles(season_list, DF)
-plot_fig(season_list, lt_list, dict_median, dict_25, dict_75)
+    DF = df_aggregation(glon)  # 从3个csv文件中得到聚合df
+    plot_lat_lt(season_list, index_range_list)
 
-print("work done!")
+    # 取lat-lt图中同一lt下lat的均值或中值，在同一子图中作出mean(median) value - lt 线图，同一季节不同kp范围在一张图中；
+    dict_median, dict_25, dict_75 = get_median_percentiles(season_list, DF)
+    plot_fig(season_list, lt_list, dict_median, dict_25, dict_75)
+
+    print("work done!")
