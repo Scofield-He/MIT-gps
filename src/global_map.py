@@ -9,6 +9,10 @@ from mpl_toolkits.basemap import Basemap
 import h5py
 import aacgmv2
 from datetime import date
+import matplotlib
+
+
+matplotlib.rcParams.update({'font.size': 12})
 
 
 def data_parameters(file):
@@ -16,7 +20,6 @@ def data_parameters(file):
         print(parameter)
     test = file['Data']['Table Layout'][:10]
     print(test)
-
     return True
 
 
@@ -57,9 +60,9 @@ def map_tec(datafile, outpath):
         tec = data['tec'][first:last]
         # print('max(tec) = {}, min(tec) = {}'.format(np.max(tec), np.min(tec)))
 
-        plt.figure(figsize=(10, 6))  # 默认大小？
+        plt.figure(figsize=(10, 5))
         fig = Basemap(projection='cyl', llcrnrlat=-90, urcrnrlat=90, llcrnrlon=-180, urcrnrlon=180, resolution='l')
-        fig.drawcoastlines(linewidth=0.5)
+        fig.drawcoastlines(linewidth=0.3)
         # draw lat/lon grid lines and lables, lables = [left, right, top, bottom]
         fig.drawmeridians(np.arange(-180., 181., 60.), labels=[False, False, False, True])
         fig.drawparallels(np.arange(-90., 91., 20.), labels=[True, False, False, False])
@@ -71,17 +74,27 @@ def map_tec(datafile, outpath):
         fig.plot(x2, y2, latlon=False, color='b')
         fig.plot(x3, y3, latlon=False, color='r')
 
+        for _ in [-120, -90, 0, 30]:
+            gdlat1 = np.array([_ for _ in range(30, 80)])
+            glon1, glon2 = np.array([_ - 5] * len(gdlat1)), np.array([_ + 5] * len(gdlat1))
+            fig.plot(glon1, gdlat1, 'k')
+            fig.plot(glon2, gdlat1, 'k')
+
         x, y = (glon, gdlat)
         mask = tec < 1
         mtec = np.ma.array(tec, mask=mask)
         color = np.log10(mtec)
         # min_tec, max_tec = np.min(color), np.max(color)
-        fig.scatter(x, y, c=color, latlon=False, vmin=0, vmax=2, marker='s', s=1, alpha=1, edgecolors='face',
+        fig.scatter(x, y, c=color, latlon=False, vmin=0, vmax=2, marker='s', s=0.65, alpha=1, edgecolors='face',
                     cmap=plt.cm.jet)
         fig.colorbar(pad='5%').set_label('log10(TEC)/TECU')
+        plt.ylabel('Geographical Latitude\n\n\n')
+        plt.xlabel('\n Geographical Longitude')
+        plt.subplots_adjust(top=0.94, left=0.09, right=0.92, bottom=0.06)
+
         ymdhms = '{}-{:2}-{:2}-{:2}-{:2}-{:2}'.format(data[last]['year'], data[last]['month'], data[last]['day'],
                                                       data[last]['hour'], data[last]['min'], data[last]['sec'])
-        plt.title("Geodetic median vertical TEC at " + ymdhms)
+        plt.title("Geodetic median vertical TEC at " + ymdhms).set_size(15)
 
         output_path = outpath + '{}-{}\\'.format(data[last]['month'], data[last]['day'])
         if not os.path.exists(output_path):
@@ -90,22 +103,22 @@ def map_tec(datafile, outpath):
         # figure_name = '{}-{}'.format(data[last]['hour'], data[last]['min'])
         figure_name = '%03d' % count
         plt.savefig(output_path + figure_name, fmt='jpg', dpi=150)
+        # plt.show()
         plt.close()
     return True
 
 
-file_path = 'C:\\DATA\\GPS_MIT\\2006\\'
-dat, year = [], 6
-for month in [3, 6, 9, 12]:
-    for day in np.arange(21, 26):
-        dat.append('gps{:02d}{:02d}{:02d}g'.format(year, month, day))
+file_path = 'C:\\DATA\\GPS_MIT\\millstone\\2016\\data\\'
+year = 16
 
 for item in os.listdir(file_path):
     i = item.split('.')
-    if i[0] in dat and i[2] == 'hdf5':
+    if i[2] == 'hdf5':
         start = time.clock()
         f = h5py.File(file_path + item)
-        fig_path = 'C:\\DATA\\GPS_MIT\\2006\\figure\\global_map\\'
+        fig_path = 'C:\\DATA\\GPS_MIT\\millstone\\2016\\figure\\global_map\\'
+        if not os.path.exists(fig_path):
+            os.makedirs(fig_path)
         map_tec(f, fig_path)
         print(time.clock() - start)
 
