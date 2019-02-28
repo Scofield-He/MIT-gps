@@ -1,6 +1,9 @@
 #! python3
 # -*- coding: utf-8 -*-
-
+"""
+this .py file is useless then since the other one 'MIT_TEC-lat-profile_dailyChange.py' replace it.
+new progress use imshow instead of scatter here.
+"""
 # import os
 # import gc
 # import time

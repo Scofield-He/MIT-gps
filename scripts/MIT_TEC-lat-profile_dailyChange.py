@@ -1,5 +1,9 @@
 #! python3
 # -*- coding: utf-8 -*-
+"""
+plot the schematic figures of lat-profile of TEC and the latitude of
+mid-latitude trough identified manually;
+"""
 
 import os
 import datetime

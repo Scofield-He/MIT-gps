@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 read omni2_years14-17.dat to get BZ and E data of Solar Wind.
+the date is consistent with localtime instead of ut
 """
 
 import os

@@ -1,6 +1,12 @@
 #! python3
 # -*- coding: utf-8 -*-
+"""
+read and aggregate mapex_data_north.hdf5 data files;
+(calculate averaged value of 1 localtime hour's data; the date is consistent with ut;)
 
+plot figures of which show the relationship of Solar Wind parameters, SuperDARN data and
+the latitude of mid-latitude trough
+"""
 import os
 # import gc
 import datetime
