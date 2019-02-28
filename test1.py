@@ -1,52 +1,43 @@
 #! python3
 # -*- coding: utf-8 -*-
 
-import os
-import time
-import datetime
+
 import numpy as np
-import h5py
-import aacgmv2
+from scipy.signal import lombscargle
+import matplotlib.pyplot as plt
 
 
-data_type = np.dtype({
-    "names": ['year', 'month', 'day', 'hour', 'min', 'sec', 'gdlat', 'glon', 'lt', 'tec', 'mlat', 'mlon', 'mlt'],
-    "formats": ['<i8', '<i8', '<i8', '<i8', '<i8', '<i8', '<f8', '<f8', '<f8', '<f8', '<f8', '<f8', '<f8']
-})
+A = 2.
+w = 1.
+phi = 0.5 * np.pi
+nin, nout = 1000, 100000
+frac_points = 0.9
 
+r = np.random.rand(nin)
+"""
+count = 0
+for _ in r:
+    if _ > frac_points:
+        count += 1
+print(count)
+"""
+x = np.linspace(0.01, 10*np.pi, nin)
+x = x[r >= frac_points]
+normval = x.shape[0]
+print(len(x))
 
-def calculate(data, L1):
-    for item in data:
-        if -180 < item["glon"] < -60 and 40 < item["gdlat"] < 70:
-            UT = item['hour'] + item['min'] / 60 + item['sec'] / 3600
-            LT = (item['glon'] / 15 + UT) % 24                                 # 计算地方时
-            MLAT, MLON = aacgmv2.convert(item["gdlat"], item["glon"], alt=350,
-                                         date=datetime.date(item["year"], item["month"], item["day"]), a2g=False)
-            MLT = aacgmv2.convert_mlt(MLON, datetime.datetime(item["year"], item["month"], item["day"],
-                                                              item["hour"], item["min"], item["sec"]), m2a=False)
+y = A * np.sin(w*x + phi)
 
-            a = np.array((item["year"], item["month"], item["day"], item["hour"], item["min"], item["sec"],
-                          item["gdlat"], item["glon"], LT, item["tec"], MLAT, MLON, MLT), dtype=data_type)
-            L1.append(a)
-    print("calculation work done!")
+f = np.linspace(0.01, 10, nout)
 
+pgram = lombscargle(x, y, f)
 
-file_path = "C:\\DATA\\GPS_MIT\\2011\\"
-out_path = file_path + "data\\"
-for fi in os.listdir(file_path):
-    if ".hdf5" in fi:
-        file = h5py.File(file_path + fi)
-        data_set = file["Data"]["Table Layout"]
-        data_list = []
+plt.subplot(311)
+plt.plot(x, y, 'b+')
 
-        start_time = time.clock()
-        calculate(data_set, data_list)
-        print("len of data: --> {}".format(len(data_list)))
-        print("time cost --> {}".format(time.clock() - start_time))
+plt.subplot(312)
+plt.plot(f, np.sqrt(4*(pgram/normval)))
 
-        f = h5py.File(out_path + "NA_" + fi)
-        f.create_group("Parameter")
-        f.create_group("Data")
-        f["Data"].create_dataset("Table Layout", data=data_list, chunks=True)
-
-print("work done!")
+plt.subplot(313)
+plt.plot(f, pgram)
+plt.show()

@@ -39,12 +39,12 @@ def df_aggregation(lt, y1, m1, d1, y2, m2, d2):
 
 
 def plot_longitude(df, lt):
-    Kp9_range1, Kp9_range2 = [0, 9], [0, 2]
+    Kp9_range1, Kp9_range2 = [2, 9], [0, 2]
     if lt[0] <= lt[1]:
         df = df.query("{} <= lt <= {}".format(lt[0], lt[1]))
     else:
         df = df.query("lt >= {} | lt <= {}".format(lt[0], lt[1]))
-    df1 = df.query("{} <= kp9 <= {} ".format(Kp9_range1[0], Kp9_range1[1]))     # Kp9 [0, 9]
+    df1 = df.query("{} < kp9 <= {} ".format(Kp9_range1[0], Kp9_range1[1]))     # Kp9 (2, 9]
     df2 = df.query("{} <= kp9 <= {} ".format(Kp9_range2[0], Kp9_range2[1]))     # Kp9 [0, 2]
 
     longitudes = ['-120', '-90', '0', '30']
@@ -53,46 +53,13 @@ def plot_longitude(df, lt):
     prof_count1 = [len(_) for _ in data_longitude1]
     data_longitude1 = [_.dropna() for _ in data_longitude1]
     trough_count1 = [len(_) for _ in data_longitude1]
-    print(prof_count1, trough_count1)
+    print('high magnetic condition:\n', prof_count1, trough_count1)
 
     data_longitude2 = [df2.query('glon == {}'.format(_)) for _ in longitudes]
     prof_count2 = np.array([len(_) for _ in data_longitude2])
     data_longitude2 = [_.dropna() for _ in data_longitude2]
     trough_count2 = np.array([len(_) for _ in data_longitude2])
-    print(prof_count2, trough_count2)
-
-    index = np.array([1, 2, 3, 4])
-
-    bar_width, gap_width = 0.3, 0.02
-    plt.bar(index - bar_width - gap_width, prof_count1, bar_width, align='edge', alpha=1, fc='lightskyblue',
-            label='lat-prof counts, Kp9∈[0, 9]')
-    plt.bar(index - bar_width - gap_width, trough_count1, bar_width, align='edge', alpha=1, fc='lightskyblue',
-            edgecolor='k', linestyle='--', hatch='\\', label='M-I-T counts, Kp9∈[0, 9]')
-    plt.bar(index + gap_width, prof_count2, bar_width, align='edge', alpha=0.6, fc='green',
-            label='lat-prof counts, Kp9∈[0, 2]')
-    plt.bar(index + gap_width, trough_count2, bar_width, align='edge', alpha=0.6, fc='green',
-            edgecolor='k', linestyle='--', hatch='\\', label='M-I-T counts, Kp9∈[0, 2]')
-    """
-    bar_width, gap_width = 0.2, 0.02
-    plt.bar(index - 2 * bar_width - gap_width, prof_count1, bar_width, align='edge', alpha=1, fc='lightskyblue',
-            edgecolor='white', label='lat-prof counts, Kp9∈[0, 9]')
-    plt.bar(index - bar_width - gap_width, trough_count1, bar_width, align='edge', alpha=1, fc='blue',
-            edgecolor='white', label='M-I-T counts, Kp9∈[0, 9]')
-    plt.bar(index + gap_width, prof_count2, bar_width, align='edge', alpha=1, fc='lightGreen',
-            edgecolor='white', label='lat-prof counts, Kp9∈[0, 2]')
-    plt.bar(index + bar_width + gap_width, trough_count2, bar_width, align='edge', alpha=1, fc='green',
-            edgecolor='white', label='M-I-T counts, Kp9∈[0, 2]')
-    """
-    plt.ylim(0, max(prof_count1) * 1.4)
-    plt.ylabel('counts', fontsize=12)
-    plt.xticks(index, ['-120', '-90', '0', '30'], fontsize=12)
-    plt.xlabel('Geo. Longitude (degree)', fontsize=12)
-    plt.yticks(fontsize=12)
-    plt.legend()
-    plt.title('2014/9/1-2017/8/31  lt_{}-{}'.format(lt[0], lt[1] + 1), fontsize=12)
-    plt.savefig(outpath + 'counts2 at longitudes lt_{}-{}'.format(lt[0], lt[1] + 1))
-    plt.show()
-    plt.close('all')
+    print('low magnetic condition:\n', prof_count2, trough_count2)
 
     # 箱型图，槽极小位置的经度分布，统一为磁纬
     box_figure = plt.figure()
@@ -100,37 +67,39 @@ def plot_longitude(df, lt):
     bias = [6, 9, -2, -3]     # bias = {-120: 6, -90: 9, 0: -2, 30: -3}
     data_corrected1 = [np.array(data_longitude1[_]['trough_min_lat']) + bias[_] for _ in range(4)]      # 4个经度带
     data_corrected2 = [np.array(data_longitude2[_]['trough_min_lat']) + bias[_] for _ in range(4)]
-    boxprops1, boxprops2 = dict(color='blue'), dict(color='green')
-    # medianprops1, medianprops2 = dict(color='blue'), dict(color='green')
-    whiskerprops1, whiskerprops2 = dict(color='blue'), dict(color='green')
-    capprops1, capprops2 = dict(color='blue'), dict(color='green')
+    boxprops1, boxprops2 = dict(color='black'), dict(color='slategrey')
+    medianprops1, medianprops2 = dict(color='black', linestyle='--'), dict(color='slategrey', linestyle='--')
+    whiskerprops1, whiskerprops2 = dict(color='black'), dict(color='slategrey')
+    capprops1, capprops2 = dict(color='black'), dict(color='slategrey')
     plt.boxplot(data_corrected1, notch=False, sym='', vert=True, whis=[5, 95], showfliers=False, showbox=True,
                 showcaps=True, positions=[0.85, 1.85, 2.85, 3.85], widths=0.2, boxprops=boxprops1,
-                whiskerprops=whiskerprops1, capprops=capprops1,
-                labels=('Kp9', '[0, 9]', '[0, 9]', '[0, 9]'))
+                whiskerprops=whiskerprops1, capprops=capprops1, medianprops=medianprops1)
     plt.boxplot(data_corrected2, notch=False, sym='', vert=True, whis=[5, 95], showfliers=False, showbox=True,
                 showcaps=True, positions=[1.15, 2.15, 3.15, 4.15], widths=0.2, boxprops=boxprops2,
-                whiskerprops=whiskerprops2, capprops=capprops2)
+                whiskerprops=whiskerprops2, capprops=capprops2, medianprops=medianprops2)
     plt.xlabel('Geo. Longitude(degree)', fontsize=12)
     plt.xticks([1, 2, 3, 4], [-120, -90, 0, 30], fontsize=12)
     plt.xlim([0.2, 5])
     plt.yticks(fontsize=12)
     plt.ylabel('Gm. Latitude(degree)', fontsize=12)
     # plt.ylim([52, 66])
-    plt.title('boxplot of lat_longitude lt_{}-{}'.format(lt[0], lt[1] + 1), fontsize=12)
-    ax.text(0.8, 0.1, 'Kp9∈[0, 9]', transform=ax.transAxes, color='blue')
-    ax.text(0.8, 0.2, 'Kp9∈[0, 2]', transform=ax.transAxes, color='green')
-    plt.savefig(outpath + 'boxplot of lat_longitude lt_{}-{}'.format(lt[0], lt[1] + 1))
-    # plt.show()
+    # plt.title('boxplot of lat_longitude lt_{}-{}'.format(lt[0], lt[1] + 1), fontsize=12)
+    ax.text(0.8, 0.1, 'Kp9∈(2, 9]', transform=ax.transAxes, color='k')
+    ax.text(0.8, 0.2, 'Kp9∈[0, 2]', transform=ax.transAxes, color='slategrey')
+    plt.subplots_adjust(left=0.1, right=0.95, top=0.93)
+    plt.savefig(outpath + 'figure4.eps', fmt='eps')
+    plt.savefig(outpath + 'figure4.jpg', fmt='jpg')
+    plt.show()
     plt.close('all')
 
 
 # outpath = 'C:\\DATA\\GPS_MIT\\millstone\\summary graph\\'
-outpath = 'C:\\tmp\\figure\\lat-longitude\\'
+# outpath = 'C:\\tmp\\figure\\lat-longitude\\'
+outpath = 'C:\\tmp\\figure\\eps\\'
 if __name__ == '__main__':
     year1, month1, day1, year2, month2, day2 = 2014, 9, 1, 2017, 8, 31
     DF = df_aggregation([22, 23, 0], year1, month1, day1, year2, month2, day2)    # lt: 22, 23, 0
     print(DF.columns)
     print('length of data Df: ', len(DF))
 
-    plot_longitude(DF, [22, 0])         # lt: 23-1, 槽的数目直方图，槽极小位置箱线图
+    plot_longitude(DF, [23, 0])         # lt: 23-1, 槽的数目直方图，槽极小位置箱线图

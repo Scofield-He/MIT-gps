@@ -53,17 +53,22 @@ def plot_ltCount(DF, Kp9, seasons):
         if Kp9 == 0 and Kp9[1] == 9:
             color = 'blue'
             color1 = 'lightskyblue'
+            figure_name = 'counts_lt_all Kp'
         elif Kp9[0] == 0 and Kp9[1] == 2:
             color = 'green'
             color1 = 'lightGreen'
+            figure_name = 'figure12'
         elif Kp9[0] == 2:
             color = 'k'
             color1 = 'grey'
+            figure_name = 'figure13'
         else:
             color = 'r'
             color1 = 'orange'
+            figure_name = 'figure14'
             # raise Exception('error Kp9 range')
-
+        if Kp9:
+            color, color1 = 'black', 'slategrey'
         ax.bar(np.array(lt_list_tmp), countsOfProf_season, bar_width, align='edge',
                alpha=1, edgecolor='white', fc=color1, label='lat-prof counts')
         ax.bar(np.array(lt_list_tmp) + bar_width, countsOfTrough_season, bar_width, align='edge',
@@ -79,7 +84,10 @@ def plot_ltCount(DF, Kp9, seasons):
     fig.tight_layout()
     fig.subplots_adjust(top=0.93, left=0.12, right=0.95)
     fig.suptitle('2014/9/1-2-17/8/31  glon:-90  Kp9:{}'.format(Kp9))
-    fig.savefig(figure_path + 'trough & prof counts Kp9_{}'.format(Kp9))
+    # fig.savefig(figure_path + 'trough & prof counts Kp9_{}'.format(Kp9))
+
+    fig.savefig(figure_path + figure_name + '.eps', fmt='eps')
+    fig.savefig(figure_path + figure_name + '.jpg', fmt='jpg')
     plt.show()
     return True
 
@@ -155,7 +163,9 @@ def plot_LatLtPercentile(DF, seasons, Kp9, LocalTimes):
     dic_median, dic_25percentile, dic_75percentile = get_MediansAndPercentiles(DF, Kp9, seasons, LocalTimes)
     lt = [_ + 24 if _ < 12 else _ for _ in LocalTimes]
     figure = plt.figure(figsize=(9, 7))
-    colors = 'bgr'
+    # colors = 'bgr'
+    colors = 'kkk'
+    fmts = ['-o', '-d', '-s']
     for idx, season in enumerate(seasons):
         ax = figure.add_subplot(221 + idx)
         plt.sca(ax)
@@ -163,8 +173,12 @@ def plot_LatLtPercentile(DF, seasons, Kp9, LocalTimes):
             Kp9_str = 'Kp9_{}'.format(_)
             y_err = [[i - j for i, j in zip(dic_median[season][Kp9_str], dic_25percentile[season][Kp9_str])],
                      [i - j for i, j in zip(dic_75percentile[season][Kp9_str], dic_median[season][Kp9_str])]]
-            ax.errorbar(lt, dic_median[season][Kp9_str], yerr=y_err, fmt='-o', color=colors[index],
-                        ms=5, capsize=5, label='{}'.format(Kp9_str))
+            if season == 'summer' and _ == [0, 2]:
+                ax.errorbar(lt[1:], dic_median[season][Kp9_str][1:], yerr=[y_err[0][1:], y_err[1][1:]], fmt=fmts[index],
+                            color=colors[index], ms=5, capsize=5, label='{}'.format(Kp9_str))
+            else:
+                ax.errorbar(lt, dic_median[season][Kp9_str], yerr=y_err, fmt=fmts[index], color=colors[index],
+                            ms=5, capsize=5, label='{}'.format(Kp9_str))
         ax.text(0.28, 0.85, '{}'.format(season), transform=ax.transAxes, color='k')
         ax.legend()
         ax.set_xlabel('Localtime(h)')
@@ -174,9 +188,11 @@ def plot_LatLtPercentile(DF, seasons, Kp9, LocalTimes):
         # ax.xaxis.set_major_locator(MultipleLocator(2))
         # ax.xaxis.set_minor_locator(MultipleLocator(1))
         ax.set_ylim(39, 65)
-    figure.suptitle('2014/9/1-2017/8/31  glon: -90°')
+    # figure.suptitle('2014/9/1-2017/8/31  glon: -90°')
     figure.subplots_adjust(top=0.93, left=0.1, right=0.95)
-    figure.savefig(figure_path + 'lat_lt ErrorBarPlot')
+    # figure.savefig(figure_path + 'lat_lt ErrorBarPlot')
+    figure.savefig(figure_path + 'figure15.eps', fmt='eps')
+    figure.savefig(figure_path + 'figure15.jpg', fmt='jpg')
     plt.show()
     figure.clear()
     return True
@@ -188,7 +204,8 @@ if __name__ == '__main__':
     year2, month2, day2 = 2017, 8, 31
     index_item = 'Kp9'
 
-    figure_path = 'C:\\tmp\\figure\\lat-lt\\'
+    # figure_path = 'C:\\tmp\\figure\\lat-lt\\'
+    figure_path = "C:\\tmp\\figure\\eps\\"
     table_path = "C:\\tmp\\bigtable.csv"
     bigtable = pd.read_csv(table_path, encoding='gb2312')
     bigtable['date'] = pd.to_datetime(bigtable["date"])  # date格式转换为datetime.date
@@ -198,11 +215,12 @@ if __name__ == '__main__':
     Seasons = ['whole year', 'equinox', 'summer', 'winter']
     Kp9_index = [[0, 2], [2, 4], [4, 9]]
     LTs = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
-    plot_ltCount(bigtable, [4, 9], Seasons)
+    for Kp9_idx in Kp9_index:
+        plot_ltCount(bigtable, Kp9_idx, Seasons)
 
     bigtable = bigtable.query('glon == {}'.format(glon)).dropna()
 
     # for _ in [[0, 2], [2, 4], [4, 9], [0, 9]]:
     #     plot_LatLtScatter(bigtable, [0, 2], Seasons)
 
-    # plot_LatLtPercentile(bigtable, Seasons, Kp9_index, LTs)
+    plot_LatLtPercentile(bigtable, Seasons, Kp9_index, LTs)

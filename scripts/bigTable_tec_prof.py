@@ -64,9 +64,11 @@ def tec_gen_write2txt(year_datapath, glon_slt, lt_list):
                             lats[_] = np.nan
 
                     # 找到极小的纬度, lats[0]-30°, 于是lats[15]对应45°，15:40对应[45:70]纬度范围
-                    mean_tec, min_tec = np.nanmean(lats[15:40]), np.nanmin(lats[15:40])
+                    # mean_tec, min_tec = np.nanmean(lats[15:40]), np.nanmin(lats[15:40])
+                    mean_tec, min_tec = np.nanmean(lats[6:31]), np.nanmin(lats[6:31])
                     if min_tec < mean_tec * 0.8:
-                        min_value_loc = np.nanargmin(lats[15:40]) + 45
+                        # min_value_loc = np.nanargmin(lats[15:40]) + 45
+                        min_value_loc = np.nanargmin(lats[6:31]) + 36
                         data_of_1year[-1].append(min_value_loc)
                     else:
                         data_of_1year[-1].append(np.nan)                    # 极小大于均值80%的，写入nan
@@ -93,7 +95,7 @@ def tec_gen_write2txt(year_datapath, glon_slt, lt_list):
                       ["gdlat-{}°".format(_) for _ in range(30, 81)]
     df_cur_year = pd.DataFrame(data_of_1year, columns=df_columns_name)
     # print("count of df_cur_year: ---------------------\n{}".format(df_cur_year.count()))
-    path_tmp = "C:\\DATA\\GPS_MIT\\{}\\tec_profile_gdlat.csv".format(data_site)
+    path_tmp = "C:\\DATA\\GPS_MIT\\{}\\tec_profile_gdlat_B.csv".format(data_site)
     if not os.path.exists(path_tmp):
         df_cur_year.to_csv(path_tmp, index=False, encoding='gb2312')
     else:
@@ -105,9 +107,11 @@ def tec_gen_write2txt(year_datapath, glon_slt, lt_list):
         new_df.to_csv(path_tmp, index=False, encoding='gb2312')
 
 
-year_list = [2017, 2016, 2015, 2014, 2013, 2012]
+# year_list = [2017, 2016, 2015, 2014, 2013, 2012]
+year_list = [2017, 2016, 2015, 2014]
 data_site = 'millstone'
-glon_c = [-120, -90, 0, 30]
+# glon_c = [-120, -90, 0, 30]
+glon_c = [-90]
 gdlat_low, gdlat_high = 30, 80
 lt = [22, 23, 0, 1, 2, 3, 4, 5, 18, 19, 20, 21]
 for year in year_list:

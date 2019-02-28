@@ -72,24 +72,28 @@ def lat_4index_in_1figure(df, lt, y1, m1, d1, y2, m2, d2):
             counts.append(points.count(_))
 
         # 作散点图
-        plt.scatter(index, trough_min_lat, color='b', s=counts, label=None)
+        plt.scatter(index, trough_min_lat, color='slategrey', s=counts, label=None)
         # 做最小二乘线性拟合
         z = list(np.polyfit(np.array(index), np.array(trough_min_lat), 1))  # 斜率与截距
         print(glon, lt, index, z)
         x = list(set(index))
         y = [z[0] * _ + z[1] for _ in x]
-        plt.plot(x, y, 'r--', label='a={:.2f} b={:.2f} r={}'.format(round(z[0], 2), round(z[1], 2), corrcoef))
+        plt.plot(x, y, 'k--', label='a={:.2f} b={:.2f}'.format(round(z[0], 2), round(z[1], 2)))
+        ax.text(0.75, 0.75, 'c.c={}'.format(corrcoef), transform=ax.transAxes, color='k')
         # figure参数设置
         plt.xlabel(MF_Index + ' index')
         plt.ylabel('Trough_min gdlat(°)')
+        ax.text(0.1, 0.1, '({})'.format(chr(ord('a') + idx)), transform=ax.transAxes, color='k')
         # plt.ylim()
         plt.legend(loc='upper right')
     plt.gcf()
+    plt.subplots_adjust(left=0.08, right=0.95, top=0.93, bottom=0.1)
     title = '2014/9/1-2017/8/31 glon:-90 lt:{}'.format(lt)
-    figure.suptitle(title)
-    plt.subplots_adjust(top=0.93)
-    # figure.tight_layout()
-    figure.savefig(figure_path + 'lt-{}h'.format(lt))
+    # figure.suptitle(title)
+    # figure.savefig(figure_path + 'lt-{}h'.format(lt))
+    # figure.savefig(figure_path + 'lt-{}h non-title'.format(lt))
+    figure.savefig(figure_path + 'figure9.eps', fmt='eps')
+    figure.savefig(figure_path + 'figure9.jpg', fmt='jpg')
     plt.show()
     return True
 
@@ -101,16 +105,19 @@ def plot_4ccOfIndex():
     figure = plt.figure(figsize=(6, 4))
     ax = figure.add_subplot(111)
     plt.sca(ax)
-    plt.plot(data["AE index"], 'b.-')
-    plt.plot(data["AE6 index"], 'r.-')
-    plt.plot(data['Kp index'], 'g.-')
-    plt.plot(data["Kp9 index"], 'k.-')
+    plt.plot(data["AE index"], '.-', c='slategrey')
+    plt.plot(data["AE6 index"], '*-', c='slategrey')
+    plt.plot(data['Kp index'], '.-', c='black')
+    plt.plot(data["Kp9 index"], '*-', c='black')
     plt.ylim(-1, -0.3)
     plt.xlabel('LT')
-    plt.ylabel('r')
-    plt.title('Linear Correlation Coefficient')
+    plt.ylabel('Linear c.c')
+    # plt.title('Linear c.c - LT')
     plt.legend()
-    figure.savefig(figure_path + 'LCC of 4 indexes within LTs')
+    plt.subplots_adjust(left=0.15, right=0.95, top=0.93, bottom=0.15)
+    # figure.savefig(figure_path + 'LCC of 4 indices within LTs-non title')
+    figure.savefig(figure_path + 'figure10.eps', fmt='eps')
+    figure.savefig(figure_path + 'figure10.jpg', fmt='jpg')
     plt.show()
     return True
 
@@ -119,7 +126,8 @@ bigtable_path = "C:\\tmp\\bigtable.csv"
 bigtable = pd.read_csv(bigtable_path, encoding='gb2312')
 bigtable["date"] = pd.to_datetime(bigtable["date"])      # 格式转换为datetime.date
 bigtable = bigtable.set_index("date").sort_index()       # 按照时间排序
-figure_path = "C:\\tmp\\figure\\lat-MagneticField_index\\"
+# figure_path = "C:\\tmp\\figure\\lat-MagneticField_index\\"
+figure_path = "C:\\tmp\\figure\\eps\\"
 
 if __name__ == '__main__':
     glon = -90
@@ -128,5 +136,5 @@ if __name__ == '__main__':
     LocalTimes = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5]
     index_items = ['Kp', 'Kp9', 'AE', 'AE6', 'Cp', 'C9', 'sum_8kp', 'mean_8ap']
     # lat_MagneticField_Index(bigtable, LocalTimes, index_items, year0, month0, day0, year, month, day)
-    # lat_4index_in_1figure(bigtable, 0, year0, month0, day0, year, month, day)
+    lat_4index_in_1figure(bigtable, 0, year0, month0, day0, year, month, day)
     plot_4ccOfIndex()

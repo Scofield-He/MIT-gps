@@ -50,8 +50,8 @@ def download_mit_tec_data(y1, m1, d1, y2, m2, d2, path):
 # out_path = 'E:\\master\\DATA\\GPS_MIT\\'
 out_path = "C:\\DATA\\GPS_MIT\\millstone\\"
 # out_path = "G:\\research\\DATA\\GPS_MIT\\"
-y0, m0, d0 = 2003, 11, 1
-y, m, d = 2004, 3, 1
+y0, m0, d0 = 2016, 1, 1
+y, m, d = 2016, 1, 10
 download_mit_tec_data(y0, m0, d0, y, m, d, out_path)
 
 """

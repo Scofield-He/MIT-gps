@@ -128,4 +128,4 @@ if __name__ == '__main__':
         for ssn in season_list:
             DF1 = data_process(DF, ssn, year1, year2, month1, month2, day1, day2)  # 得到对应时间范围内某季节的dataframe
             for _ in index_list:
-                data_plotIndex(DF1, _, ssn)  # 作出某地方时，某时段内，槽极小位置随各指数的线性关系变化；
+                data_plotIndex(DF1, _, ssn)                  # 作出某地方时，某时段内，槽极小位置随各指数的线性关系变化；

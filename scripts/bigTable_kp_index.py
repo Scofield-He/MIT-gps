@@ -20,7 +20,7 @@ def read_kp_index(year, glon_list, lt_list):
             if line[:6] == "{}1231".format(str(year-1)[-2:]):
                 last_line = line
             if line[:2] == str(year)[-2:]:
-                date = datetime.date(year, int(line[2:4]), int(line[4:6]))
+                date = datetime.date(year, int(line[2:4]), int(line[4:6]))    # 与世界时date一致；
                 time0 = time.time()
                 print(date, end=':  ')
                 cur_doy = date.timetuple().tm_yday

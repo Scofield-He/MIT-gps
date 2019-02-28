@@ -49,7 +49,7 @@ def get_percentiles(DF):
 
             for Kp9 in Kp9_list:
                 data_Kp9 = df.query("{} <= Kp9 < {}".format(Kp9-0.5, Kp9+0.5))
-                if len(data_Kp9) > 2:
+                if len(data_Kp9) > 3:
                     dict_Median[season][lt_str].append(data_Kp9['trough_min_lat'].median())
                     dict_25thPercentile[season][lt_str].append(data_Kp9['trough_min_lat'].quantile(0.25))
                     dict_75thPercentile[season][lt_str].append(data_Kp9['trough_min_lat'].quantile(0.75))
@@ -80,7 +80,9 @@ def get_fitted_line(DF):
 
 def plot_lat_Kp9(DF, mode=False):
     fig = plt.figure(figsize=(10, 8))
-    colors = 'rgbyck'
+    # colors = 'rgbyck'
+    colors = 'kkkkkk'
+    fmts = ['-o', '-d', '-s', '-^', '-v', '-p']
     for idx, season in enumerate(season_list):
         ax = fig.add_subplot(141 + idx)
         plt.sca(ax)
@@ -90,7 +92,7 @@ def plot_lat_Kp9(DF, mode=False):
                 dic_median, dic_25th, dic_75th = get_percentiles(DF)
                 y_err = [[i - j for i, j in zip(dic_median[season][lt_str], dic_25th[season][lt_str])],
                          [i - j for i, j in zip(dic_75th[season][lt_str], dic_median[season][lt_str])]]
-                ax.errorbar(Kp9_list, dic_median[season][lt_str], yerr=y_err, fmt='o-', ms=5, c=colors[i],
+                ax.errorbar(Kp9_list, dic_median[season][lt_str], yerr=y_err, fmt=fmts[i], ms=5, c=colors[i],
                             capsize=5, alpha=0.8, label='lt={}'.format(lt))
             else:
                 dic_fitted = get_fitted_line(DF)
@@ -107,10 +109,12 @@ def plot_lat_Kp9(DF, mode=False):
         ax.yaxis.set_major_locator(MultipleLocator(5))
         ax.yaxis.set_minor_locator(MultipleLocator(1))
     title = '{}/{}/{}-{}/{}/{} glon:{} MIT_min_gdlat-Kp9'.format(year1, month1, day1, year2, month2, day2, glon)
-    fig.suptitle(title)
+    # fig.suptitle(title)
     fig.subplots_adjust(top=0.93, left=0.09, right=0.95)
     if mode:
-        fig.savefig(figure_path + 'MIT_min_gdlat-Kp9 lt-{}'.format(lt_list))
+        # fig.savefig(figure_path + 'MIT_min_gdlat-Kp9 lt-{}'.format(lt_list))
+        fig.savefig(figure_path + 'figure11_non-colored.eps', fmt='eps')
+        fig.savefig(figure_path + 'figure11_non-colored.jpg', fmt='jpg')
     else:
         fig.savefig(figure_path + 'MIT_min_gdlat-Kp9 Linear fit lt-{}'.format(lt_list))
     plt.show()
@@ -140,7 +144,8 @@ if __name__ == '__main__':
     year2, month2, day2 = 2017, 8, 31
     index_item = 'Kp9'
 
-    figure_path = 'C:\\tmp\\figure\\lat-MagneticField_index\\'
+    # figure_path = 'C:\\tmp\\figure\\lat-MagneticField_index\\'
+    figure_path = 'C:\\tmp\\figure\\eps\\'
     table_path = "C:\\tmp\\bigtable.csv"
     bigtable = pd.read_csv(table_path, encoding='gb2312')
     bigtable['date'] = pd.to_datetime(bigtable["date"])  # date格式转换为datetime.date
@@ -152,5 +157,5 @@ if __name__ == '__main__':
     season_list = ['whole year', 'equinox', 'summer', 'winter']
     lt_list = [18, 20, 22, 0, 2, 4]
 
-    plot_lat_Kp9(bigtable, mode=False)
+    plot_lat_Kp9(bigtable, mode=True)
     # plot_3dScatter_lat_Kp9lt(bigtable)

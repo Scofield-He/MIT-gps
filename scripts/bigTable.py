@@ -7,6 +7,7 @@ import pandas as pd
 def data_aggregation(y1, m1, d1, y2, m2, d2):
     """
     :return: 2014-9-1:2017-8-31日，包含槽极小，Kp，AE，F107，等的bigTable
+    date: 聚合前后的数据都与世界时的date保持一致，而不是地方时date；
     """
     mit_filepath = "C:\\tmp\\sorted tec_profile_gdlat.csv"
     Kp_filepath = "C:\\tmp\\sorted kp_index.csv"
